@@ -16,6 +16,10 @@
         recognition: null,
         hindiVoice: null,
         englishVoice: null,
+        mediaRecorder: null,
+        audioChunks: [],
+        recordedAudioURL: null,
+        audioStream: null,
     };
 
     // ===== DOM ELEMENTS =====
@@ -54,6 +58,7 @@
         confettiContainer: $("confetti-container"),
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
+        playbackBtn: $("playback-btn"),
     };
 
     // ===== INITIALIZATION =====
@@ -110,6 +115,9 @@
         els.prevBtn.addEventListener("click", goToPrevVerse);
         els.nextBtn.addEventListener("click", goToNextVerse);
         els.restartBtn.addEventListener("click", restartApp);
+        if (els.playbackBtn) {
+            els.playbackBtn.addEventListener("click", playbackRecording);
+        }
         if (els.enableAudioBtn) {
             els.enableAudioBtn.addEventListener("click", () => {
                 // Unlock audio context for mobile
@@ -147,6 +155,10 @@
         state.isPlaying = false;
         state.isRecording = false;
 
+        // Clear recording state
+        state.recordedAudioURL = null;
+        state.audioChunks = [];
+
         const verse = HANUMAN_CHALISA[index];
 
         // Update verse display
@@ -160,6 +172,11 @@
         els.highlightWord.classList.remove("visible");
         els.recordingIndicator.classList.remove("active");
         hideFeedback();
+
+        // Hide playback button for new verse
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
+        }
 
         // Update progress
         updateProgress();
@@ -306,15 +323,54 @@
     }
 
     // ===== SPEECH RECOGNITION =====
-    function startRecording() {
-        if (!state.recognition) {
-            // Fallback for browsers without speech recognition
-            showFeedback("great", "Great singing! Let's move on! (Speech recognition not available in this browser)");
-            awardStar();
-            return;
+    async function startRecording() {
+        if (state.isRecording) return;
+
+        // Hide playback button when starting new recording
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
         }
 
-        if (state.isRecording) return;
+        // Clear previous recording
+        state.audioChunks = [];
+        state.recordedAudioURL = null;
+
+        // Request microphone access and start recording
+        try {
+            state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Start MediaRecorder for actual audio recording
+            state.mediaRecorder = new MediaRecorder(state.audioStream);
+
+            state.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    state.audioChunks.push(event.data);
+                }
+            };
+
+            state.mediaRecorder.onstop = () => {
+                // Create audio blob and URL
+                const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                state.recordedAudioURL = URL.createObjectURL(audioBlob);
+
+                // Show playback button
+                if (els.playbackBtn) {
+                    els.playbackBtn.style.display = "inline-flex";
+                }
+
+                // Stop audio stream tracks
+                if (state.audioStream) {
+                    state.audioStream.getTracks().forEach(track => track.stop());
+                }
+            };
+
+            state.mediaRecorder.start();
+
+        } catch (error) {
+            console.error("Error accessing microphone:", error);
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+            return;
+        }
 
         state.isRecording = true;
         state.speechSynthesis.cancel();
@@ -332,11 +388,14 @@
         state._recognizedText = "";
         state._recognitionTimeout = null;
 
-        try {
-            state.recognition.start();
-        } catch (e) {
-            // Already started
-            console.warn("Recognition already running:", e);
+        // Also start speech recognition for transcription (if available)
+        if (state.recognition) {
+            try {
+                state.recognition.start();
+            } catch (e) {
+                // Already started
+                console.warn("Recognition already running:", e);
+            }
         }
 
         // Auto-stop after 15 seconds if child doesn't press done
@@ -357,10 +416,18 @@
 
         clearTimeout(state._autoStopTimer);
 
-        try {
-            state.recognition.stop();
-        } catch (e) {
-            // Already stopped
+        // Stop MediaRecorder
+        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+        }
+
+        // Stop speech recognition
+        if (state.recognition) {
+            try {
+                state.recognition.stop();
+            } catch (e) {
+                // Already stopped
+            }
         }
 
         // Evaluate what was heard
@@ -425,6 +492,35 @@
                 }
             }
         });
+    }
+
+    // ===== PLAYBACK RECORDING =====
+    function playbackRecording() {
+        if (!state.recordedAudioURL) {
+            setGuideMessage("No recording to play back yet! Try recording first! 🎤");
+            return;
+        }
+
+        // Create and play audio element
+        const audio = new Audio(state.recordedAudioURL);
+
+        setGuideMessage("Playing back your recording! 🎵");
+        els.playbackBtn.disabled = true;
+        disableControls(true);
+
+        audio.onended = () => {
+            setGuideMessage("That was you singing! Great job! 🌟");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.onerror = () => {
+            setGuideMessage("Oops! Couldn't play the recording.");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.play();
     }
 
     // ===== EVALUATION =====
