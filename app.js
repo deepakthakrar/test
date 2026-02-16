@@ -226,33 +226,44 @@
         els.verseCard.classList.add("speaking");
         disableControls(true);
 
-        // We speak the transliteration (romanized) so children can follow along
-        const utterance = new SpeechSynthesisUtterance(verse.speakText);
-        utterance.rate = rate;
-        utterance.pitch = 1.1; // slightly higher for friendliness
-        utterance.volume = 1.0;
+        // Speak only the original Hindi/Sanskrit text
+        const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        hindiUtterance.rate = rate;
+        hindiUtterance.pitch = 1.1; // slightly higher for friendliness
+        hindiUtterance.volume = 1.0;
 
-        // Use Hindi voice if available, otherwise English with Hindi text
-        if (state.hindiVoice && rate >= 0.9) {
-            // Use Hindi voice for normal speed with Hindi text
-            const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        // Use Hindi voice if available
+        if (state.hindiVoice) {
             hindiUtterance.voice = state.hindiVoice;
-            hindiUtterance.rate = rate;
-            hindiUtterance.pitch = 1.1;
-            hindiUtterance.volume = 1.0;
-
-            hindiUtterance.onend = () => {
-                // Now speak transliteration
-                speakTransliteration(verse, rate);
-            };
-            hindiUtterance.onerror = () => {
-                speakTransliteration(verse, rate);
-            };
-
-            state.speechSynthesis.speak(hindiUtterance);
-        } else {
-            speakTransliteration(verse, rate);
         }
+
+        hindiUtterance.onend = () => {
+            state.isPlaying = false;
+            state.hasListened = true;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+
+            // Enable My Turn button
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+
+            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+
+            // Pulse the My Turn button
+            els.myTurnBtn.classList.add("pulse-btn");
+            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
+        };
+
+        hindiUtterance.onerror = () => {
+            state.isPlaying = false;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+            state.hasListened = true;
+        };
+
+        state.speechSynthesis.speak(hindiUtterance);
     }
 
     function speakTransliteration(verse, rate) {
