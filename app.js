@@ -1,0 +1,684 @@
+// ===== Hanuman Chalisa Kids App - Main Logic =====
+
+(function () {
+    "use strict";
+
+    // ===== STATE =====
+    const state = {
+        currentVerse: 0,
+        stars: 0,
+        isPlaying: false,
+        isRecording: false,
+        hasListened: false,       // child must listen before singing
+        attemptCount: 0,          // attempts on current verse
+        versesCompleted: new Set(),
+        speechSynthesis: window.speechSynthesis,
+        recognition: null,
+        hindiVoice: null,
+        englishVoice: null,
+    };
+
+    // ===== DOM ELEMENTS =====
+    const $ = (id) => document.getElementById(id);
+    const screens = {
+        start: $("start-screen"),
+        learn: $("learn-screen"),
+        celebration: $("celebration-screen"),
+    };
+    const els = {
+        startBtn: $("start-btn"),
+        listenBtn: $("listen-btn"),
+        listenSlowBtn: $("listen-slow-btn"),
+        myTurnBtn: $("my-turn-btn"),
+        skipBtn: $("skip-btn"),
+        stopRecordingBtn: $("stop-recording-btn"),
+        prevBtn: $("prev-btn"),
+        nextBtn: $("next-btn"),
+        restartBtn: $("restart-btn"),
+        enableAudioBtn: $("enable-audio-btn"),
+        progressBar: $("progress-bar"),
+        progressText: $("progress-text"),
+        starCount: $("star-count"),
+        starsEarned: $("stars-earned"),
+        guideMessage: $("guide-message"),
+        verseNumber: $("verse-number"),
+        verseHindi: $("verse-hindi"),
+        verseTranslit: $("verse-translit"),
+        verseMeaning: $("verse-meaning"),
+        verseCard: $("verse-card"),
+        highlightWord: $("highlight-word"),
+        recordingIndicator: $("recording-indicator"),
+        feedbackArea: $("feedback-area"),
+        feedbackContent: $("feedback-content"),
+        speechBubble: $("speech-bubble"),
+        confettiContainer: $("confetti-container"),
+        finalStars: $("final-stars"),
+        audioPermission: $("audio-permission"),
+    };
+
+    // ===== INITIALIZATION =====
+    function init() {
+        setupSpeechSynthesis();
+        setupSpeechRecognition();
+        bindEvents();
+    }
+
+    function setupSpeechSynthesis() {
+        // Load voices (may be async)
+        function loadVoices() {
+            const voices = state.speechSynthesis.getVoices();
+            // Try to find Hindi voice
+            state.hindiVoice = voices.find(v => v.lang.startsWith("hi")) || null;
+            // English voice for transliteration
+            state.englishVoice = voices.find(v => v.lang.startsWith("en") && v.name.includes("Female"))
+                || voices.find(v => v.lang.startsWith("en-IN"))
+                || voices.find(v => v.lang.startsWith("en"))
+                || null;
+        }
+        loadVoices();
+        if (state.speechSynthesis.onvoiceschanged !== undefined) {
+            state.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+    }
+
+    function setupSpeechRecognition() {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.warn("Speech recognition not supported");
+            return;
+        }
+
+        state.recognition = new SpeechRecognition();
+        state.recognition.continuous = true;
+        state.recognition.interimResults = true;
+        // Try Hindi first, fallback to English
+        state.recognition.lang = "hi-IN";
+
+        state.recognition.onresult = handleRecognitionResult;
+        state.recognition.onerror = handleRecognitionError;
+        state.recognition.onend = handleRecognitionEnd;
+    }
+
+    // ===== EVENT BINDING =====
+    function bindEvents() {
+        els.startBtn.addEventListener("click", startLearning);
+        els.listenBtn.addEventListener("click", () => speakVerse(1.0));
+        els.listenSlowBtn.addEventListener("click", () => speakVerse(0.6));
+        els.myTurnBtn.addEventListener("click", startRecording);
+        els.skipBtn.addEventListener("click", skipToNext);
+        els.stopRecordingBtn.addEventListener("click", stopRecording);
+        els.prevBtn.addEventListener("click", goToPrevVerse);
+        els.nextBtn.addEventListener("click", goToNextVerse);
+        els.restartBtn.addEventListener("click", restartApp);
+        if (els.enableAudioBtn) {
+            els.enableAudioBtn.addEventListener("click", () => {
+                // Unlock audio context for mobile
+                const utterance = new SpeechSynthesisUtterance(" ");
+                utterance.volume = 0;
+                state.speechSynthesis.speak(utterance);
+                els.audioPermission.style.display = "none";
+            });
+        }
+    }
+
+    // ===== SCREEN MANAGEMENT =====
+    function showScreen(name) {
+        Object.values(screens).forEach(s => s.classList.remove("active"));
+        screens[name].classList.add("active");
+    }
+
+    // ===== START LEARNING =====
+    function startLearning() {
+        showScreen("learn");
+        state.currentVerse = 0;
+        state.stars = 0;
+        state.versesCompleted.clear();
+        updateStarDisplay();
+        loadVerse(0);
+    }
+
+    // ===== VERSE LOADING =====
+    function loadVerse(index) {
+        if (index < 0 || index >= HANUMAN_CHALISA.length) return;
+
+        state.currentVerse = index;
+        state.hasListened = false;
+        state.attemptCount = 0;
+        state.isPlaying = false;
+        state.isRecording = false;
+
+        const verse = HANUMAN_CHALISA[index];
+
+        // Update verse display
+        els.verseNumber.textContent = verse.section;
+        els.verseHindi.textContent = verse.hindi;
+        els.verseTranslit.textContent = verse.transliteration;
+        els.verseMeaning.textContent = verse.meaning;
+
+        // Reset card state
+        els.verseCard.classList.remove("listening", "speaking", "success");
+        els.highlightWord.classList.remove("visible");
+        els.recordingIndicator.classList.remove("active");
+        hideFeedback();
+
+        // Update progress
+        updateProgress();
+        updateNavButtons();
+
+        // Guide message
+        const msg = randomFrom(ENCOURAGE_MESSAGES.start);
+        setGuideMessage(msg);
+
+        // Disable my-turn until they listen
+        els.myTurnBtn.disabled = true;
+        els.myTurnBtn.style.opacity = "0.5";
+
+        // Add karaoke-style words to transliteration
+        renderKaraokeWords();
+
+        // Animate card entry
+        els.verseCard.style.animation = "none";
+        els.verseCard.offsetHeight; // reflow
+        els.verseCard.style.animation = "slide-up 0.4s ease";
+    }
+
+    function renderKaraokeWords() {
+        const verse = HANUMAN_CHALISA[state.currentVerse];
+        const words = verse.transliteration.split(/\s+/);
+        els.verseTranslit.innerHTML = words
+            .map((w, i) => `<span class="word-span" data-idx="${i}">${w}</span>`)
+            .join(" ");
+    }
+
+    // ===== TEXT-TO-SPEECH =====
+    function speakVerse(rate) {
+        if (state.isPlaying) {
+            state.speechSynthesis.cancel();
+            state.isPlaying = false;
+            els.verseCard.classList.remove("speaking");
+            resetKaraokeWords();
+            return;
+        }
+
+        const verse = HANUMAN_CHALISA[state.currentVerse];
+
+        // Cancel any ongoing speech
+        state.speechSynthesis.cancel();
+
+        state.isPlaying = true;
+        els.verseCard.classList.add("speaking");
+        disableControls(true);
+
+        // We speak the transliteration (romanized) so children can follow along
+        const utterance = new SpeechSynthesisUtterance(verse.speakText);
+        utterance.rate = rate;
+        utterance.pitch = 1.1; // slightly higher for friendliness
+        utterance.volume = 1.0;
+
+        // Use Hindi voice if available, otherwise English with Hindi text
+        if (state.hindiVoice && rate >= 0.9) {
+            // Use Hindi voice for normal speed with Hindi text
+            const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+            hindiUtterance.voice = state.hindiVoice;
+            hindiUtterance.rate = rate;
+            hindiUtterance.pitch = 1.1;
+            hindiUtterance.volume = 1.0;
+
+            hindiUtterance.onend = () => {
+                // Now speak transliteration
+                speakTransliteration(verse, rate);
+            };
+            hindiUtterance.onerror = () => {
+                speakTransliteration(verse, rate);
+            };
+
+            state.speechSynthesis.speak(hindiUtterance);
+        } else {
+            speakTransliteration(verse, rate);
+        }
+    }
+
+    function speakTransliteration(verse, rate) {
+        const utterance = new SpeechSynthesisUtterance(verse.speakText);
+        utterance.rate = rate;
+        utterance.pitch = 1.1;
+        utterance.volume = 1.0;
+
+        if (state.englishVoice) {
+            utterance.voice = state.englishVoice;
+        }
+
+        // Karaoke word highlighting
+        const words = verse.speakText.split(/\s+/);
+        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
+        let wordIndex = 0;
+
+        utterance.onboundary = (event) => {
+            if (event.name === "word" && wordIndex < wordSpans.length) {
+                // Remove previous highlights
+                wordSpans.forEach(s => s.classList.remove("active"));
+                wordSpans[wordIndex].classList.add("active");
+                if (wordIndex > 0) wordSpans[wordIndex - 1].classList.add("done");
+                wordIndex++;
+            }
+        };
+
+        utterance.onend = () => {
+            state.isPlaying = false;
+            state.hasListened = true;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+
+            // Enable My Turn button
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+
+            // Mark all words as done
+            wordSpans.forEach(s => {
+                s.classList.remove("active");
+                s.classList.add("done");
+            });
+
+            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+
+            // Pulse the My Turn button
+            els.myTurnBtn.classList.add("pulse-btn");
+            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
+        };
+
+        utterance.onerror = () => {
+            state.isPlaying = false;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+            state.hasListened = true;
+        };
+
+        state.speechSynthesis.speak(utterance);
+    }
+
+    function resetKaraokeWords() {
+        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
+        wordSpans.forEach(s => {
+            s.classList.remove("active", "done");
+        });
+    }
+
+    // ===== SPEECH RECOGNITION =====
+    function startRecording() {
+        if (!state.recognition) {
+            // Fallback for browsers without speech recognition
+            showFeedback("great", "Great singing! Let's move on! (Speech recognition not available in this browser)");
+            awardStar();
+            return;
+        }
+
+        if (state.isRecording) return;
+
+        state.isRecording = true;
+        state.speechSynthesis.cancel();
+        state.isPlaying = false;
+
+        els.verseCard.classList.add("listening");
+        els.recordingIndicator.classList.add("active");
+        disableControls(true);
+
+        setGuideMessage("I'm listening! Sing the verse now! 🎵");
+
+        // Reset words for tracking
+        resetKaraokeWords();
+
+        state._recognizedText = "";
+        state._recognitionTimeout = null;
+
+        try {
+            state.recognition.start();
+        } catch (e) {
+            // Already started
+            console.warn("Recognition already running:", e);
+        }
+
+        // Auto-stop after 15 seconds if child doesn't press done
+        state._autoStopTimer = setTimeout(() => {
+            if (state.isRecording) {
+                stopRecording();
+            }
+        }, 15000);
+    }
+
+    function stopRecording() {
+        if (!state.isRecording) return;
+
+        state.isRecording = false;
+        els.verseCard.classList.remove("listening");
+        els.recordingIndicator.classList.remove("active");
+        disableControls(false);
+
+        clearTimeout(state._autoStopTimer);
+
+        try {
+            state.recognition.stop();
+        } catch (e) {
+            // Already stopped
+        }
+
+        // Evaluate what was heard
+        evaluateAttempt(state._recognizedText || "");
+    }
+
+    function handleRecognitionResult(event) {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+        state._recognizedText = transcript;
+
+        // Show partial recognition by highlighting words
+        highlightRecognizedWords(transcript);
+    }
+
+    function handleRecognitionError(event) {
+        console.warn("Recognition error:", event.error);
+
+        if (event.error === "not-allowed") {
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+        }
+
+        if (state.isRecording) {
+            // If error during recording, be forgiving for kids
+            setTimeout(() => {
+                if (state.isRecording) {
+                    stopRecording();
+                }
+            }, 1000);
+        }
+    }
+
+    function handleRecognitionEnd() {
+        if (state.isRecording) {
+            // Restart if still supposed to be recording
+            try {
+                state.recognition.start();
+            } catch (e) {
+                stopRecording();
+            }
+        }
+    }
+
+    function highlightRecognizedWords(transcript) {
+        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
+        const spoken = transcript.toLowerCase().replace(/[,.\/#!$%\^&\*;:{}=\-_`~()]/g, "");
+        const spokenWords = spoken.split(/\s+/).filter(w => w.length > 0);
+
+        // Simple matching: highlight words that sound similar
+        const verse = HANUMAN_CHALISA[state.currentVerse];
+        const verseWords = verse.speakText.toLowerCase().split(/\s+/);
+
+        let matchCount = 0;
+        verseWords.forEach((vw, i) => {
+            if (i < wordSpans.length) {
+                const matched = spokenWords.some(sw => fuzzyMatch(sw, vw));
+                if (matched) {
+                    wordSpans[i].classList.add("done");
+                    matchCount++;
+                }
+            }
+        });
+    }
+
+    // ===== EVALUATION =====
+    function evaluateAttempt(transcript) {
+        state.attemptCount++;
+        const verse = HANUMAN_CHALISA[state.currentVerse];
+        const verseWords = verse.speakText.toLowerCase().split(/\s+/);
+        const spokenWords = transcript.toLowerCase()
+            .replace(/[,.\/#!$%\^&\*;:{}=\-_`~()]/g, "")
+            .split(/\s+/)
+            .filter(w => w.length > 0);
+
+        // Calculate match score
+        let matches = 0;
+        verseWords.forEach(vw => {
+            if (spokenWords.some(sw => fuzzyMatch(sw, vw))) {
+                matches++;
+            }
+        });
+
+        const score = verseWords.length > 0 ? matches / verseWords.length : 0;
+
+        // Be generous with scoring for 5-year-olds!
+        // Also consider: if child spoke any words at all, that's effort
+        const hasEffort = spokenWords.length > 0 || transcript.length > 0;
+
+        if (score >= 0.3 || (hasEffort && state.attemptCount >= 2)) {
+            // Great job! (Be encouraging for kids)
+            showFeedback("great", randomFrom(ENCOURAGE_MESSAGES.great));
+            awardStar();
+            markVerseCompleted();
+            els.verseCard.classList.add("success");
+            createFloatingStar();
+        } else if (hasEffort || state.attemptCount >= 1) {
+            // Good try
+            showFeedback("good", randomFrom(ENCOURAGE_MESSAGES.good));
+            // After 2 attempts, give star anyway (kids should feel accomplished)
+            if (state.attemptCount >= 2) {
+                awardStar();
+                markVerseCompleted();
+                els.verseCard.classList.add("success");
+                createFloatingStar();
+            }
+        } else {
+            // Encourage to try again
+            showFeedback("try-again", randomFrom(ENCOURAGE_MESSAGES.tryAgain));
+        }
+    }
+
+    function fuzzyMatch(spoken, expected) {
+        // Simple fuzzy matching for speech recognition inaccuracies
+        if (!spoken || !expected) return false;
+        spoken = spoken.toLowerCase().trim();
+        expected = expected.toLowerCase().trim();
+
+        // Exact match
+        if (spoken === expected) return true;
+
+        // One contains the other
+        if (spoken.includes(expected) || expected.includes(spoken)) return true;
+
+        // Remove common suffixes/prefixes
+        if (spoken.length >= 3 && expected.length >= 3) {
+            // Check if first 3 chars match (good enough for kids)
+            if (spoken.substring(0, 3) === expected.substring(0, 3)) return true;
+
+            // Levenshtein-like: allow 2 char difference for words > 4 chars
+            if (expected.length > 4 && levenshteinDistance(spoken, expected) <= 2) return true;
+            if (expected.length <= 4 && levenshteinDistance(spoken, expected) <= 1) return true;
+        }
+
+        return false;
+    }
+
+    function levenshteinDistance(a, b) {
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b[i - 1] === a[j - 1]) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
+            }
+        }
+        return matrix[b.length][a.length];
+    }
+
+    // ===== FEEDBACK =====
+    function showFeedback(type, message) {
+        els.feedbackArea.className = "feedback-area visible " + type;
+        els.feedbackContent.textContent = message;
+        setGuideMessage(message);
+    }
+
+    function hideFeedback() {
+        els.feedbackArea.className = "feedback-area";
+    }
+
+    // ===== STARS & REWARDS =====
+    function awardStar() {
+        state.stars++;
+        updateStarDisplay();
+    }
+
+    function updateStarDisplay() {
+        els.starCount.textContent = state.stars;
+        // Bounce animation
+        els.starsEarned.style.animation = "none";
+        els.starsEarned.offsetHeight;
+        els.starsEarned.style.animation = "bounce 0.5s ease";
+    }
+
+    function createFloatingStar() {
+        const star = document.createElement("div");
+        star.className = "floating-star";
+        star.textContent = "⭐";
+        star.style.left = Math.random() * 80 + 10 + "%";
+        star.style.top = "60%";
+        document.body.appendChild(star);
+        setTimeout(() => star.remove(), 1500);
+    }
+
+    function markVerseCompleted() {
+        state.versesCompleted.add(state.currentVerse);
+    }
+
+    // ===== NAVIGATION =====
+    function goToNextVerse() {
+        if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
+            state.speechSynthesis.cancel();
+            loadVerse(state.currentVerse + 1);
+        } else {
+            showCelebration();
+        }
+    }
+
+    function goToPrevVerse() {
+        if (state.currentVerse > 0) {
+            state.speechSynthesis.cancel();
+            loadVerse(state.currentVerse - 1);
+        }
+    }
+
+    function skipToNext() {
+        goToNextVerse();
+    }
+
+    function updateProgress() {
+        const progress = ((state.currentVerse + 1) / HANUMAN_CHALISA.length) * 100;
+        els.progressBar.style.width = progress + "%";
+        els.progressText.textContent = `Verse ${state.currentVerse + 1} of ${HANUMAN_CHALISA.length}`;
+    }
+
+    function updateNavButtons() {
+        els.prevBtn.disabled = state.currentVerse === 0;
+        els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
+            ? "Finish! 🎉"
+            : "Next ▶";
+    }
+
+    // ===== CELEBRATION =====
+    function showCelebration() {
+        showScreen("celebration");
+        els.finalStars.textContent = state.stars;
+        createConfetti();
+
+        // Speak congratulation
+        const congrats = new SpeechSynthesisUtterance(
+            "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!"
+        );
+        congrats.rate = 0.9;
+        congrats.pitch = 1.2;
+        if (state.englishVoice) congrats.voice = state.englishVoice;
+        state.speechSynthesis.speak(congrats);
+    }
+
+    function createConfetti() {
+        const colors = ["#FF6B35", "#FF9933", "#FFD166", "#06D6A0", "#118AB2", "#7B2D8E", "#FF69B4", "#E63946"];
+        els.confettiContainer.innerHTML = "";
+
+        for (let i = 0; i < 50; i++) {
+            const piece = document.createElement("div");
+            piece.className = "confetti-piece";
+            piece.style.left = Math.random() * 100 + "%";
+            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDelay = Math.random() * 3 + "s";
+            piece.style.animationDuration = (Math.random() * 2 + 2) + "s";
+            const size = Math.random() * 8 + 6;
+            piece.style.width = size + "px";
+            piece.style.height = size + "px";
+            if (Math.random() > 0.5) piece.style.borderRadius = "50%";
+            els.confettiContainer.appendChild(piece);
+        }
+    }
+
+    // ===== RESTART =====
+    function restartApp() {
+        state.speechSynthesis.cancel();
+        showScreen("start");
+    }
+
+    // ===== HELPERS =====
+    function setGuideMessage(text) {
+        els.guideMessage.textContent = text;
+        // Animate bubble
+        els.speechBubble.style.animation = "none";
+        els.speechBubble.offsetHeight;
+        els.speechBubble.style.animation = "slide-up 0.3s ease";
+    }
+
+    function disableControls(disabled) {
+        els.listenBtn.disabled = disabled;
+        els.listenSlowBtn.disabled = disabled;
+        if (!state.hasListened && disabled === false) {
+            els.myTurnBtn.disabled = true;
+        } else {
+            els.myTurnBtn.disabled = disabled;
+        }
+        els.skipBtn.disabled = disabled;
+    }
+
+    function randomFrom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // ===== KEYBOARD SHORTCUTS (for parents/testing) =====
+    document.addEventListener("keydown", (e) => {
+        if (screens.learn.classList.contains("active")) {
+            switch (e.key) {
+                case " ":
+                    e.preventDefault();
+                    if (!state.isRecording && !state.isPlaying) speakVerse(1.0);
+                    break;
+                case "ArrowRight":
+                    goToNextVerse();
+                    break;
+                case "ArrowLeft":
+                    goToPrevVerse();
+                    break;
+                case "m":
+                    if (!state.isRecording) startRecording();
+                    else stopRecording();
+                    break;
+            }
+        }
+    });
+
+    // ===== START =====
+    init();
+})();

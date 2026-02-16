@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hanuman Chalisa - Learn & Sing!</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen active">
+        <div class="clouds">
+            <div class="cloud cloud-1"></div>
+            <div class="cloud cloud-2"></div>
+            <div class="cloud cloud-3"></div>
+        </div>
+        <div class="start-content">
+            <div class="hanuman-icon">&#x1F9E1;</div>
+            <h1>Hanuman Chalisa</h1>
+            <p class="subtitle">Learn to Sing with Hanuman Ji!</p>
+            <div class="character-container">
+                <div class="character" id="hanuman-start">
+                    <div class="character-body">&#x1F64F;</div>
+                </div>
+            </div>
+            <button id="start-btn" class="big-btn pulse-btn">
+                <span class="btn-icon">&#x1F3B5;</span>
+                Let's Start Singing!
+            </button>
+            <p class="hint-text">Ask a grown-up to help you get started!</p>
+        </div>
+    </div>
+
+    <!-- Main Learning Screen -->
+    <div id="learn-screen" class="screen">
+        <header>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar"></div>
+                <span class="progress-text" id="progress-text">Verse 1 of 42</span>
+            </div>
+            <div class="stars-earned" id="stars-earned">
+                <span class="star-icon">&#x2B50;</span>
+                <span id="star-count">0</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- Character Guide -->
+            <div class="guide-section">
+                <div class="guide-character" id="guide-character">
+                    <div class="speech-bubble" id="speech-bubble">
+                        <p id="guide-message">Let's learn together! Listen first, then you try!</p>
+                    </div>
+                    <div class="monkey-guide">&#x1F435;</div>
+                </div>
+            </div>
+
+            <!-- Verse Display -->
+            <div class="verse-card" id="verse-card">
+                <div class="verse-number" id="verse-number">Doha</div>
+                <div class="verse-lines">
+                    <p class="verse-line hindi" id="verse-hindi"></p>
+                    <p class="verse-line transliteration" id="verse-translit"></p>
+                    <p class="verse-line meaning" id="verse-meaning"></p>
+                </div>
+                <div class="highlight-word" id="highlight-word"></div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls">
+                <button id="listen-btn" class="control-btn listen-btn" title="Listen">
+                    <span class="btn-emoji">&#x1F50A;</span>
+                    <span class="btn-label">Listen</span>
+                </button>
+                <button id="listen-slow-btn" class="control-btn slow-btn" title="Listen Slowly">
+                    <span class="btn-emoji">&#x1F422;</span>
+                    <span class="btn-label">Slow</span>
+                </button>
+                <button id="my-turn-btn" class="control-btn sing-btn" title="My Turn!">
+                    <span class="btn-emoji">&#x1F3A4;</span>
+                    <span class="btn-label">My Turn!</span>
+                </button>
+                <button id="skip-btn" class="control-btn skip-btn" title="Skip">
+                    <span class="btn-emoji">&#x23ED;</span>
+                    <span class="btn-label">Next</span>
+                </button>
+            </div>
+
+            <!-- Recording Indicator -->
+            <div class="recording-indicator" id="recording-indicator">
+                <div class="mic-pulse"></div>
+                <span class="recording-text">&#x1F3A4; Listening to you sing...</span>
+                <button id="stop-recording-btn" class="stop-btn">Done!</button>
+            </div>
+
+            <!-- Feedback Area -->
+            <div class="feedback-area" id="feedback-area">
+                <div class="feedback-content" id="feedback-content"></div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="navigation">
+                <button id="prev-btn" class="nav-btn" disabled>
+                    &#x25C0; Back
+                </button>
+                <button id="next-btn" class="nav-btn">
+                    Next &#x25B6;
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Celebration Screen -->
+    <div id="celebration-screen" class="screen">
+        <div class="celebration-content">
+            <div class="confetti-container" id="confetti-container"></div>
+            <h1 class="celebration-title">&#x1F389; Amazing Job! &#x1F389;</h1>
+            <div class="trophy">&#x1F3C6;</div>
+            <p class="celebration-text">You sang the Hanuman Chalisa!</p>
+            <p class="celebration-stars">
+                You earned <span id="final-stars">0</span> &#x2B50; stars!
+            </p>
+            <button id="restart-btn" class="big-btn pulse-btn">
+                <span class="btn-icon">&#x1F504;</span>
+                Sing Again!
+            </button>
+        </div>
+    </div>
+
+    <!-- Audio Context Unlock (needed for iOS/mobile) -->
+    <div id="audio-permission" class="modal" style="display:none;">
+        <div class="modal-content">
+            <h2>&#x1F50A; Enable Sound</h2>
+            <p>Tap the button so you can hear the verses!</p>
+            <button id="enable-audio-btn" class="big-btn">Enable Sound &#x1F3B5;</button>
+        </div>
+    </div>
+
+    <script src="verses.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
