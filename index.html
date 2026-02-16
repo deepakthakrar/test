@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hanuman Chalisa - Learn & Sing!</title>
+    <title>Shanti Hanuman Chalisa - Interactive Learning</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,19 +15,23 @@
             <div class="cloud cloud-3"></div>
         </div>
         <div class="start-content">
-            <div class="hanuman-icon">&#x1F9E1;</div>
-            <h1>Hanuman Chalisa</h1>
-            <p class="subtitle">Learn to Sing with Hanuman Ji!</p>
+            <div class="hanuman-icon">
+                <img src="https://cdn-icons-png.flaticon.com/512/3815/3815405.png" alt="Lord Hanuman" class="hanuman-image">
+            </div>
+            <h1>Shanti Hanuman Chalisa</h1>
+            <p class="subtitle">Sacred Verses • Interactive Learning</p>
             <div class="character-container">
                 <div class="character" id="hanuman-start">
-                    <div class="character-body">&#x1F64F;</div>
+                    <img src="https://cdn-icons-png.flaticon.com/512/3815/3815405.png" alt="Hanuman" class="character-image">
                 </div>
             </div>
             <button id="start-btn" class="big-btn pulse-btn">
-                <span class="btn-icon">&#x1F3B5;</span>
-                Let's Start Singing!
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+                Begin Your Journey
             </button>
-            <p class="hint-text">Ask a grown-up to help you get started!</p>
+            <p class="hint-text">Experience the divine power of Hanuman Chalisa</p>
         </div>
     </div>
 
@@ -39,7 +43,9 @@
                 <span class="progress-text" id="progress-text">Verse 1 of 42</span>
             </div>
             <div class="stars-earned" id="stars-earned">
-                <span class="star-icon">&#x2B50;</span>
+                <svg class="star-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                </svg>
                 <span id="star-count">0</span>
             </div>
         </header>
@@ -51,7 +57,9 @@
                     <div class="speech-bubble" id="speech-bubble">
                         <p id="guide-message">Let's learn together! Listen first, then you try!</p>
                     </div>
-                    <div class="monkey-guide">&#x1F435;</div>
+                    <div class="hanuman-guide">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3815/3815405.png" alt="Hanuman Guide" class="guide-image">
+                    </div>
                 </div>
             </div>
 
@@ -69,32 +77,46 @@
             <!-- Controls -->
             <div class="controls">
                 <button id="listen-btn" class="control-btn listen-btn" title="Listen">
-                    <span class="btn-emoji">&#x1F50A;</span>
+                    <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                    </svg>
                     <span class="btn-label">Listen</span>
                 </button>
                 <button id="listen-slow-btn" class="control-btn slow-btn" title="Listen Slowly">
-                    <span class="btn-emoji">&#x1F422;</span>
+                    <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13.05 9.79L10 7.5v9l3.05-2.29L16 12zm0 0L10 7.5v9l3.05-2.29L16 12zm0 0L10 7.5v9l3.05-2.29L16 12zM11 4.07V2.05c-2.01.2-3.84 1-5.32 2.21L7.1 5.69c1.11-.86 2.44-1.44 3.9-1.62zM5.69 7.1L4.26 5.68C3.05 7.16 2.25 8.99 2.05 11h2.02c.18-1.46.76-2.79 1.62-3.9zM4.07 13H2.05c.2 2.01 1 3.84 2.21 5.32l1.43-1.43c-.86-1.1-1.44-2.43-1.62-3.89zm1.61 6.74C7.16 20.95 9 21.75 11 21.95v-2.02c-1.46-.18-2.79-.76-3.9-1.62l-1.42 1.43zM22 12c0 5.16-3.92 9.42-8.95 9.95v-2.02C16.97 19.41 20 16.05 20 12s-3.03-7.41-6.95-7.93V2.05C18.08 2.58 22 6.84 22 12z"/>
+                    </svg>
                     <span class="btn-label">Slow</span>
                 </button>
                 <button id="my-turn-btn" class="control-btn sing-btn" title="My Turn!">
-                    <span class="btn-emoji">&#x1F3A4;</span>
+                    <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
                     <span class="btn-label">My Turn!</span>
                 </button>
                 <button id="playback-btn" class="control-btn playback-btn" title="Listen to My Recording" style="display:none;">
-                    <span class="btn-emoji">&#x1F3A7;</span>
+                    <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zM9.5 16.5v-9l7 4.5-7 4.5z"/>
+                    </svg>
                     <span class="btn-label">Hear Me!</span>
                 </button>
                 <button id="skip-btn" class="control-btn skip-btn" title="Skip">
-                    <span class="btn-emoji">&#x23ED;</span>
+                    <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/>
+                    </svg>
                     <span class="btn-label">Next</span>
                 </button>
             </div>
 
             <!-- Recording Indicator -->
             <div class="recording-indicator" id="recording-indicator">
-                <div class="mic-pulse"></div>
-                <span class="recording-text">&#x1F3A4; Listening to you sing...</span>
-                <button id="stop-recording-btn" class="stop-btn">Done!</button>
+                <div class="mic-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="mic-icon">
+                        <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
+                    </svg>
+                </div>
+                <span class="recording-text">Recording your sacred recitation...</span>
+                <button id="stop-recording-btn" class="stop-btn">Complete</button>
             </div>
 
             <!-- Feedback Area -->
@@ -118,15 +140,19 @@
     <div id="celebration-screen" class="screen">
         <div class="celebration-content">
             <div class="confetti-container" id="confetti-container"></div>
-            <h1 class="celebration-title">&#x1F389; Amazing Job! &#x1F389;</h1>
-            <div class="trophy">&#x1F3C6;</div>
-            <p class="celebration-text">You sang the Hanuman Chalisa!</p>
+            <div class="hanuman-blessing">
+                <img src="https://cdn-icons-png.flaticon.com/512/3815/3815405.png" alt="Hanuman Blessing" class="blessing-image">
+            </div>
+            <h1 class="celebration-title">Divine Accomplishment!</h1>
+            <p class="celebration-text">You have completed the sacred Hanuman Chalisa</p>
             <p class="celebration-stars">
-                You earned <span id="final-stars">0</span> &#x2B50; stars!
+                You earned <span id="final-stars">0</span> divine blessings
             </p>
             <button id="restart-btn" class="big-btn pulse-btn">
-                <span class="btn-icon">&#x1F504;</span>
-                Sing Again!
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                </svg>
+                Practice Again
             </button>
         </div>
     </div>
@@ -134,9 +160,17 @@
     <!-- Audio Context Unlock (needed for iOS/mobile) -->
     <div id="audio-permission" class="modal" style="display:none;">
         <div class="modal-content">
-            <h2>&#x1F50A; Enable Sound</h2>
-            <p>Tap the button so you can hear the verses!</p>
-            <button id="enable-audio-btn" class="big-btn">Enable Sound &#x1F3B5;</button>
+            <svg class="modal-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+            </svg>
+            <h2>Enable Sacred Audio</h2>
+            <p>Activate sound to experience the divine verses</p>
+            <button id="enable-audio-btn" class="big-btn">
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
+                Enable Sound
+            </button>
         </div>
     </div>
 
