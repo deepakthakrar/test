@@ -27,10 +27,12 @@
     const screens = {
         start: $("start-screen"),
         learn: $("learn-screen"),
+        blessing: $("blessing-screen"),
         celebration: $("celebration-screen"),
     };
     const els = {
         startBtn: $("start-btn"),
+        homeBtn: $("home-btn"),
         listenBtn: $("listen-btn"),
         listenSlowBtn: $("listen-slow-btn"),
         myTurnBtn: $("my-turn-btn"),
@@ -39,6 +41,7 @@
         prevBtn: $("prev-btn"),
         nextBtn: $("next-btn"),
         restartBtn: $("restart-btn"),
+        continueBtn: $("continue-btn"),
         enableAudioBtn: $("enable-audio-btn"),
         progressBar: $("progress-bar"),
         progressText: $("progress-text"),
@@ -59,6 +62,9 @@
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
         playbackBtn: $("playback-btn"),
+        aiHanumanImage: $("ai-hanuman-image"),
+        blessingMessage: $("blessing-message"),
+        newsContext: $("news-context"),
     };
 
     // ===== INITIALIZATION =====
@@ -107,6 +113,9 @@
     // ===== EVENT BINDING =====
     function bindEvents() {
         els.startBtn.addEventListener("click", startLearning);
+        if (els.homeBtn) {
+            els.homeBtn.addEventListener("click", goHome);
+        }
         els.listenBtn.addEventListener("click", () => speakVerse(1.0));
         els.listenSlowBtn.addEventListener("click", () => speakVerse(0.6));
         els.myTurnBtn.addEventListener("click", startRecording);
@@ -115,6 +124,9 @@
         els.prevBtn.addEventListener("click", goToPrevVerse);
         els.nextBtn.addEventListener("click", goToNextVerse);
         els.restartBtn.addEventListener("click", restartApp);
+        if (els.continueBtn) {
+            els.continueBtn.addEventListener("click", continueFromBlessing);
+        }
         if (els.playbackBtn) {
             els.playbackBtn.addEventListener("click", playbackRecording);
         }
@@ -126,6 +138,11 @@
                 state.speechSynthesis.speak(utterance);
                 els.audioPermission.style.display = "none";
             });
+        }
+
+        // Add magical click effect on verse card
+        if (els.verseCard) {
+            els.verseCard.addEventListener("click", createMagicalSparkles);
         }
     }
 
@@ -665,11 +682,32 @@
         state.versesCompleted.add(state.currentVerse);
     }
 
+    // ===== HOME NAVIGATION =====
+    function goHome() {
+        state.speechSynthesis.cancel();
+        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+        }
+        if (state.recognition) {
+            try {
+                state.recognition.stop();
+            } catch (e) {}
+        }
+        showScreen("start");
+    }
+
     // ===== NAVIGATION =====
     function goToNextVerse() {
         if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
             state.speechSynthesis.cancel();
-            loadVerse(state.currentVerse + 1);
+
+            // Check if we should show divine blessing
+            const nextVerse = state.currentVerse + 1;
+            if ((nextVerse + 1) % 7 === 0 && nextVerse > 0) {
+                showDivineBlessing();
+            } else {
+                loadVerse(nextVerse);
+            }
         } else {
             showCelebration();
         }
@@ -697,6 +735,159 @@
         els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
             ? "Finish! 🎉"
             : "Next ▶";
+    }
+
+    // ===== DIVINE BLESSING SCREEN =====
+    async function showDivineBlessing() {
+        showScreen("blessing");
+
+        // Show loading state
+        const loadingEl = document.querySelector(".image-loading");
+        if (loadingEl) loadingEl.classList.remove("hidden");
+        if (els.aiHanumanImage) els.aiHanumanImage.classList.remove("loaded");
+
+        // Speak blessing
+        const blessingText = "Divine blessings from Lord Hanuman! You are doing wonderfully!";
+        const utterance = new SpeechSynthesisUtterance(blessingText);
+        utterance.rate = 0.85;
+        utterance.pitch = 1.1;
+        if (state.englishVoice) utterance.voice = state.englishVoice;
+        state.speechSynthesis.speak(utterance);
+
+        // Get AI-generated Hanuman image with news context
+        try {
+            const imageData = await generateDivineImage();
+
+            if (imageData.imageUrl) {
+                if (els.aiHanumanImage) {
+                    els.aiHanumanImage.src = imageData.imageUrl;
+                    els.aiHanumanImage.onload = () => {
+                        if (loadingEl) loadingEl.classList.add("hidden");
+                        els.aiHanumanImage.classList.add("loaded");
+                    };
+                }
+            }
+
+            if (imageData.context && els.newsContext) {
+                els.newsContext.textContent = imageData.context;
+            }
+        } catch (error) {
+            console.error("Error loading divine image:", error);
+            // Use fallback image
+            if (els.aiHanumanImage) {
+                els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                els.aiHanumanImage.onload = () => {
+                    if (loadingEl) loadingEl.classList.add("hidden");
+                    els.aiHanumanImage.classList.add("loaded");
+                };
+            }
+        }
+
+        // Update blessing message
+        if (els.blessingMessage) {
+            const messages = [
+                "Lord Hanuman blesses your dedication and devotion 🙏",
+                "Your voice fills the divine realm with joy ✨",
+                "Hanuman ji is proud of your efforts 🌟",
+                "The sacred verses flow through you beautifully 🎵",
+                "Divine protection surrounds you, brave learner 💫"
+            ];
+            els.blessingMessage.textContent = randomFrom(messages);
+        }
+
+        // Add magical particles
+        createDivineParticles();
+    }
+
+    function continueFromBlessing() {
+        const nextVerse = state.currentVerse + 1;
+        if (nextVerse < HANUMAN_CHALISA.length) {
+            loadVerse(nextVerse);
+            showScreen("learn");
+        } else {
+            showCelebration();
+        }
+    }
+
+    async function generateDivineImage() {
+        // TODO: Integrate with actual AI image generation API
+        // For now, return a placeholder with context
+
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // In production, you would:
+        // 1. Fetch today's news headlines from a news API
+        // 2. Generate a prompt combining Hanuman imagery with news context
+        // 3. Call DALL-E, Midjourney, or Stable Diffusion API
+        // 4. Return the generated image URL
+
+        const todayDate = new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        // Placeholder contexts that would normally come from news API
+        const contexts = [
+            `On this day, ${todayDate}, the world celebrates peace and harmony`,
+            `${todayDate} - A day of new beginnings and divine blessings`,
+            `Today's blessing: Strength and courage for all endeavors`,
+            `${todayDate} - May wisdom guide your path forward`
+        ];
+
+        return {
+            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg",
+            context: randomFrom(contexts),
+            prompt: "Divine Lord Hanuman in meditation, surrounded by golden light and lotus flowers"
+        };
+    }
+
+    // ===== MAGICAL EFFECTS =====
+    function createDivineParticles() {
+        const colors = ["#FFD700", "#FFA500", "#FF8C42", "#FFE5B4"];
+        const container = document.querySelector(".blessing-screen-content");
+        if (!container) return;
+
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const particle = document.createElement("div");
+                particle.style.position = "absolute";
+                particle.style.width = "6px";
+                particle.style.height = "6px";
+                particle.style.borderRadius = "50%";
+                particle.style.backgroundColor = randomFrom(colors);
+                particle.style.left = Math.random() * 100 + "%";
+                particle.style.top = Math.random() * 100 + "%";
+                particle.style.opacity = "0.8";
+                particle.style.pointerEvents = "none";
+                particle.style.animation = `divine-particle ${2 + Math.random() * 2}s ease-out forwards`;
+                container.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 4000);
+            }, i * 50);
+        }
+    }
+
+    function createMagicalSparkles(event) {
+        const colors = ["#FFD700", "#FFA500", "#FF69B4", "#87CEEB"];
+
+        for (let i = 0; i < 5; i++) {
+            const sparkle = document.createElement("div");
+            sparkle.textContent = "✨";
+            sparkle.style.position = "fixed";
+            sparkle.style.left = event.clientX + "px";
+            sparkle.style.top = event.clientY + "px";
+            sparkle.style.pointerEvents = "none";
+            sparkle.style.fontSize = "20px";
+            sparkle.style.zIndex = "1000";
+            sparkle.style.animation = `sparkle-burst ${0.8 + Math.random() * 0.4}s ease-out forwards`;
+            sparkle.style.setProperty("--angle", Math.random() * 360 + "deg");
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => sparkle.remove(), 1200);
+        }
     }
 
     // ===== CELEBRATION =====
@@ -742,11 +933,8 @@
 
     // ===== HELPERS =====
     function setGuideMessage(text) {
-        els.guideMessage.textContent = text;
-        // Animate bubble
-        els.speechBubble.style.animation = "none";
-        els.speechBubble.offsetHeight;
-        els.speechBubble.style.animation = "slide-up 0.3s ease";
+        // Guide removed, but keep function for compatibility
+        console.log("Guide message:", text);
     }
 
     function disableControls(disabled) {

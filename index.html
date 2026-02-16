@@ -38,6 +38,11 @@
     <!-- Main Learning Screen -->
     <div id="learn-screen" class="screen">
         <header>
+            <button id="home-btn" class="home-btn" title="Return to Home">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+            </button>
             <div class="progress-bar-container">
                 <div class="progress-bar" id="progress-bar"></div>
                 <span class="progress-text" id="progress-text">Verse 1 of 42</span>
@@ -51,18 +56,6 @@
         </header>
 
         <main>
-            <!-- Character Guide -->
-            <div class="guide-section">
-                <div class="guide-character" id="guide-character">
-                    <div class="speech-bubble" id="speech-bubble">
-                        <p id="guide-message">Let's learn together! Listen first, then you try!</p>
-                    </div>
-                    <div class="hanuman-guide">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg" alt="Hanuman Guide" class="guide-image">
-                    </div>
-                </div>
-            </div>
-
             <!-- Verse Display -->
             <div class="verse-card" id="verse-card">
                 <div class="verse-number" id="verse-number">Doha</div>
@@ -134,6 +127,31 @@
                 </button>
             </div>
         </main>
+    </div>
+
+    <!-- Divine Blessing Screen (every 7 verses) -->
+    <div id="blessing-screen" class="screen">
+        <div class="blessing-screen-content">
+            <div class="divine-mandala"></div>
+            <h2 class="blessing-title">Divine Blessing Received! 🙏</h2>
+            <div class="ai-hanuman-container">
+                <img id="ai-hanuman-image" src="" alt="Divine Hanuman" class="ai-hanuman-image">
+                <div class="image-loading">
+                    <div class="lotus-loader"></div>
+                    <p>Receiving divine vision...</p>
+                </div>
+            </div>
+            <p class="blessing-message" id="blessing-message">
+                Lord Hanuman blesses your dedication
+            </p>
+            <p class="news-context" id="news-context"></p>
+            <button id="continue-btn" class="big-btn pulse-btn">
+                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z"/>
+                </svg>
+                Continue Journey
+            </button>
+        </div>
     </div>
 
     <!-- Celebration Screen -->
