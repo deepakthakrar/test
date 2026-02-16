@@ -9,31 +9,31 @@
 }
 
 :root {
-    --primary-orange: #FF6B00;
-    --saffron: #FF9100;
-    --sacred-red: #C62828;
-    --divine-gold: #FFB300;
-    --peaceful-green: #2E7D32;
-    --spiritual-blue: #1565C0;
-    --deep-purple: #4A148C;
-    --warm-brown: #5D4037;
+    --primary-orange: #FF8C42;
+    --saffron: #FFA94D;
+    --sacred-red: #D84A4A;
+    --divine-gold: #FFC857;
+    --peaceful-green: #4CAF50;
+    --spiritual-blue: #5DADE2;
+    --deep-purple: #9B59B6;
+    --warm-brown: #8D6E63;
+    --soft-pink: #FFE5E5;
     --bg-gradient: linear-gradient(135deg,
-        #FFF8E1 0%,
-        #FFE0B2 25%,
-        #FFCC80 50%,
-        #FFB74D 75%,
-        #FF9800 100%
+        #FFF9F0 0%,
+        #FFE8D6 30%,
+        #FFE0CC 60%,
+        #FFD8BD 100%
     );
-    --card-bg: rgba(255, 255, 255, 0.98);
-    --glass-bg: rgba(255, 255, 255, 0.25);
-    --glass-border: rgba(255, 255, 255, 0.5);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
-    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.15);
-    --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.2);
-    --shadow-divine: 0 0 40px rgba(255, 145, 0, 0.3);
-    --radius: 24px;
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --glass-bg: rgba(255, 255, 255, 0.3);
+    --glass-border: rgba(255, 255, 255, 0.6);
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.12);
+    --shadow-divine: 0 0 30px rgba(255, 165, 0, 0.2);
+    --radius: 28px;
+    --transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 body {
@@ -54,11 +54,17 @@ body::before {
     right: 0;
     bottom: 0;
     background:
-        radial-gradient(circle at 20% 30%, rgba(255, 193, 7, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(255, 107, 53, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(123, 45, 142, 0.1) 0%, transparent 50%);
+        radial-gradient(circle at 20% 30%, rgba(255, 200, 150, 0.1) 0%, transparent 60%),
+        radial-gradient(circle at 80% 70%, rgba(255, 180, 120, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 50% 50%, rgba(255, 220, 180, 0.06) 0%, transparent 50%);
     pointer-events: none;
     z-index: 0;
+    animation: gentle-shift 20s ease-in-out infinite;
+}
+
+@keyframes gentle-shift {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
 }
 
 /* ===== SCREENS ===== */
@@ -102,15 +108,15 @@ body::before {
     width: 200%;
     height: 200%;
     background:
-        radial-gradient(circle, rgba(255, 235, 59, 0.3) 0%, transparent 70%),
-        radial-gradient(circle at 80% 20%, rgba(255, 152, 0, 0.2) 0%, transparent 50%);
-    animation: pulse-bg 8s ease-in-out infinite;
+        radial-gradient(circle, rgba(255, 220, 180, 0.15) 0%, transparent 70%),
+        radial-gradient(circle at 80% 20%, rgba(255, 200, 150, 0.1) 0%, transparent 60%);
+    animation: calm-pulse 15s ease-in-out infinite;
     z-index: 0;
 }
 
-@keyframes pulse-bg {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(-10%, -10%) scale(1.1); }
+@keyframes calm-pulse {
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
+    50% { transform: translate(-5%, -5%) scale(1.05); opacity: 0.9; }
 }
 
 .clouds {
@@ -188,58 +194,63 @@ body::before {
 }
 
 .hanuman-icon {
-    width: 180px;
-    height: 180px;
-    margin: 0 auto 20px;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 24px;
     position: relative;
-    animation: float-gentle 4s ease-in-out infinite;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow:
+        0 8px 32px rgba(255, 140, 66, 0.15),
+        0 0 0 8px rgba(255, 255, 255, 0.3),
+        0 0 0 12px rgba(255, 200, 150, 0.2);
+    animation: gentle-float 6s ease-in-out infinite;
 }
 
 .hanuman-image {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    filter: drop-shadow(0 12px 24px rgba(255, 145, 0, 0.4));
-    animation: divine-glow 3s ease-in-out infinite;
+    object-fit: cover;
+    object-position: center top;
+    transition: transform 0.8s ease;
 }
 
-@keyframes float-gentle {
+.hanuman-icon:hover .hanuman-image {
+    transform: scale(1.05);
+}
+
+@keyframes gentle-float {
     0%, 100% {
         transform: translateY(0px);
+        box-shadow:
+            0 8px 32px rgba(255, 140, 66, 0.15),
+            0 0 0 8px rgba(255, 255, 255, 0.3),
+            0 0 0 12px rgba(255, 200, 150, 0.2);
     }
     50% {
-        transform: translateY(-15px);
-    }
-}
-
-@keyframes divine-glow {
-    0%, 100% {
-        filter: drop-shadow(0 12px 24px rgba(255, 145, 0, 0.4));
-    }
-    50% {
-        filter: drop-shadow(0 16px 32px rgba(255, 145, 0, 0.7));
+        transform: translateY(-8px);
+        box-shadow:
+            0 12px 40px rgba(255, 140, 66, 0.2),
+            0 0 0 8px rgba(255, 255, 255, 0.4),
+            0 0 0 12px rgba(255, 200, 150, 0.25);
     }
 }
 
 #start-screen h1 {
-    font-size: 3.5rem;
+    font-size: 3.2rem;
     background: linear-gradient(135deg,
         var(--primary-orange) 0%,
-        var(--saffron) 30%,
-        var(--divine-gold) 50%,
-        var(--saffron) 70%,
-        var(--primary-orange) 100%
+        var(--saffron) 50%,
+        var(--divine-gold) 100%
     );
-    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     text-shadow: none;
-    margin: 16px 0;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    animation: gradient-shift 4s ease infinite;
-    font-family: 'Poppins', 'Noto Sans Devanagari', sans-serif;
+    margin: 20px 0;
+    font-weight: 700;
+    letter-spacing: 0px;
+    font-family: 'Fredoka', 'Poppins', 'Noto Sans Devanagari', sans-serif;
 }
 
 @keyframes gradient-shift {
@@ -268,88 +279,95 @@ body::before {
 }
 
 .character-image {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    animation: wave 2s ease-in-out infinite;
-    filter: drop-shadow(0 8px 16px rgba(255, 145, 0, 0.3));
+    width: 100px;
+    height: 100px;
+    object-fit: cover;
+    object-position: center top;
+    border-radius: 50%;
+    box-shadow:
+        0 4px 16px rgba(255, 140, 66, 0.15),
+        0 0 0 4px rgba(255, 255, 255, 0.5);
+    animation: gentle-sway 4s ease-in-out infinite;
 }
 
-@keyframes wave {
+@keyframes gentle-sway {
     0%, 100% {
         transform: rotate(0deg) scale(1);
     }
     25% {
-        transform: rotate(8deg) scale(1.05);
+        transform: rotate(3deg) scale(1.02);
     }
     75% {
-        transform: rotate(-8deg) scale(1.05);
+        transform: rotate(-3deg) scale(1.02);
     }
 }
 
 .big-btn {
-    background: linear-gradient(135deg, #FF6B35 0%, #FF9933 50%, #FFA726 100%);
-    background-size: 200% 200%;
+    background: linear-gradient(135deg, #FFA94D 0%, #FF8C42 100%);
     color: white;
     border: none;
-    padding: 20px 48px;
-    font-size: 1.6rem;
-    border-radius: 60px;
+    padding: 18px 40px;
+    font-size: 1.5rem;
+    border-radius: 50px;
     cursor: pointer;
     box-shadow:
-        0 8px 24px rgba(255, 107, 53, 0.4),
-        0 4px 12px rgba(255, 107, 53, 0.3),
-        inset 0 2px 0 rgba(255, 255, 255, 0.3),
-        inset 0 -2px 0 rgba(0, 0, 0, 0.1);
-    transition: var(--transition);
-    font-weight: 700;
+        0 6px 20px rgba(255, 140, 66, 0.25),
+        inset 0 2px 0 rgba(255, 255, 255, 0.3);
+    transition: all 0.4s ease;
+    font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     position: relative;
     overflow: hidden;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .big-btn::before {
     content: '';
     position: absolute;
     top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    transition: left 0.5s ease;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #FFB366 0%, #FFA059 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
 .big-btn:hover::before {
-    left: 100%;
+    opacity: 1;
 }
 
 .big-btn:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-2px) scale(1.02);
     box-shadow:
-        0 12px 32px rgba(255, 107, 53, 0.5),
-        0 6px 16px rgba(255, 107, 53, 0.4),
+        0 8px 28px rgba(255, 140, 66, 0.35),
         inset 0 2px 0 rgba(255, 255, 255, 0.4);
-    background-position: 100% 50%;
 }
 
 .big-btn:active {
-    transform: translateY(-2px) scale(0.98);
+    transform: translateY(0px) scale(0.98);
     box-shadow:
-        0 6px 16px rgba(255, 107, 53, 0.4),
-        inset 0 2px 8px rgba(0, 0, 0, 0.1);
+        0 4px 16px rgba(255, 140, 66, 0.25),
+        inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .pulse-btn {
-    animation: pulse 2s infinite;
+    animation: gentle-pulse 3s ease-in-out infinite;
 }
 
-@keyframes pulse {
-    0% { box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4); }
-    50% { box-shadow: 0 6px 40px rgba(255, 107, 53, 0.7); }
-    100% { box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4); }
+@keyframes gentle-pulse {
+    0%, 100% {
+        box-shadow:
+            0 6px 20px rgba(255, 140, 66, 0.25),
+            inset 0 2px 0 rgba(255, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow:
+            0 8px 28px rgba(255, 140, 66, 0.35),
+            inset 0 2px 0 rgba(255, 255, 255, 0.4);
+    }
 }
 
 .btn-icon {
@@ -359,23 +377,24 @@ body::before {
 }
 
 .btn-icon-svg {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     fill: currentColor;
-    transition: transform 0.3s ease;
+    transition: transform 0.4s ease;
 }
 
 .control-btn:hover .btn-icon-svg {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .hint-text {
     margin-top: 20px;
-    color: #78909c;
-    font-size: 0.95rem;
+    color: #8D6E63;
+    font-size: 1rem;
     font-weight: 500;
     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
-    opacity: 0.9;
+    opacity: 0.85;
+    letter-spacing: 0.3px;
 }
 
 /* ===== HEADER / PROGRESS ===== */
@@ -499,20 +518,22 @@ header {
 }
 
 .star-icon {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     fill: var(--divine-gold);
     position: relative;
     z-index: 1;
-    animation: star-twinkle 2s ease-in-out infinite;
+    animation: soft-twinkle 4s ease-in-out infinite;
 }
 
-@keyframes star-twinkle {
+@keyframes soft-twinkle {
     0%, 100% {
-        transform: scale(1) rotate(0deg);
+        transform: scale(1);
+        opacity: 1;
     }
     50% {
-        transform: scale(1.15) rotate(180deg);
+        transform: scale(1.1);
+        opacity: 0.9;
     }
 }
 
@@ -544,44 +565,50 @@ header {
 }
 
 .hanuman-guide {
-    width: 70px;
-    height: 70px;
+    width: 64px;
+    height: 64px;
     position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow:
+        0 4px 12px rgba(255, 140, 66, 0.12),
+        0 0 0 3px rgba(255, 255, 255, 0.5);
 }
 
 .guide-image {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    animation: bounce 3s infinite;
-    filter: drop-shadow(0 4px 8px rgba(255, 145, 0, 0.3));
+    object-fit: cover;
+    object-position: center top;
+    animation: soft-bounce 5s ease-in-out infinite;
 }
 
-@keyframes bounce {
+@keyframes soft-bounce {
     0%, 100% {
         transform: translateY(0) scale(1);
     }
     50% {
-        transform: translateY(-12px) scale(1.05);
+        transform: translateY(-6px) scale(1.02);
     }
 }
 
 .speech-bubble {
     background: linear-gradient(135deg,
-        rgba(255, 255, 255, 0.98),
-        rgba(255, 248, 225, 0.95)
+        rgba(255, 255, 255, 0.95),
+        rgba(255, 250, 240, 0.95)
     );
     backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 16px 22px;
+    border-radius: 24px;
+    padding: 18px 24px;
     position: relative;
     box-shadow:
-        var(--shadow-md),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
-    max-width: 320px;
-    font-size: 1rem;
-    color: #424242;
-    border: 2px solid rgba(255, 255, 255, 0.6);
+        var(--shadow-sm),
+        inset 0 1px 0 rgba(255, 255, 255, 1);
+    max-width: 300px;
+    font-size: 1.05rem;
+    color: #5D4037;
+    border: 2px solid rgba(255, 220, 180, 0.5);
+    line-height: 1.6;
 }
 
 .speech-bubble::after {
@@ -621,21 +648,21 @@ header {
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
+    height: 5px;
     background: linear-gradient(90deg,
-        var(--orange),
+        var(--primary-orange),
         var(--saffron),
-        var(--yellow),
+        var(--divine-gold),
         var(--saffron),
-        var(--orange)
+        var(--primary-orange)
     );
     background-size: 200% 100%;
-    animation: shimmer 3s linear infinite;
+    animation: gentle-shimmer 8s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-    0% { background-position: 0% 50%; }
-    100% { background-position: 200% 50%; }
+@keyframes gentle-shimmer {
+    0%, 100% { background-position: 0% 50%; opacity: 0.8; }
+    50% { background-position: 100% 50%; opacity: 1; }
 }
 
 .verse-card.listening {
@@ -752,53 +779,37 @@ header {
 
 .control-btn {
     border: none;
-    padding: 16px 24px;
-    border-radius: 20px;
+    padding: 18px 22px;
+    border-radius: 24px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 700;
+    font-size: 1.05rem;
+    font-weight: 600;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    transition: var(--transition);
-    min-width: 85px;
+    gap: 8px;
+    transition: all 0.3s ease;
+    min-width: 90px;
     box-shadow:
-        var(--shadow-md),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+        var(--shadow-sm),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
     position: relative;
-    overflow: hidden;
     backdrop-filter: blur(10px);
-    border: 2px solid rgba(255, 255, 255, 0.4);
-}
-
-.control-btn::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 0;
-    height: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
-    transform: translate(-50%, -50%);
-    transition: width 0.4s ease, height 0.4s ease;
-}
-
-.control-btn:hover::before {
-    width: 200%;
-    height: 200%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
 .control-btn:hover {
-    transform: translateY(-4px) scale(1.05);
+    transform: translateY(-2px) scale(1.03);
     box-shadow:
-        var(--shadow-lg),
-        inset 0 2px 0 rgba(255, 255, 255, 0.6);
+        var(--shadow-md),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
 .control-btn:active {
-    transform: translateY(-1px) scale(0.98);
+    transform: translateY(0px) scale(0.98);
+    box-shadow:
+        var(--shadow-sm),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
 .btn-emoji {
@@ -1135,47 +1146,54 @@ header {
 }
 
 .celebration-title {
-    font-size: 2.8rem;
+    font-size: 2.5rem;
     background: linear-gradient(135deg,
         var(--primary-orange) 0%,
-        var(--saffron) 25%,
-        var(--divine-gold) 50%,
-        var(--saffron) 75%,
-        var(--primary-orange) 100%
+        var(--saffron) 50%,
+        var(--divine-gold) 100%
     );
-    background-size: 200% 200%;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     margin-bottom: 20px;
-    animation: float-gentle 3s ease-in-out infinite, gradient-shift 4s ease infinite;
-    font-weight: 800;
-    letter-spacing: 0.5px;
+    animation: gentle-float 6s ease-in-out infinite;
+    font-weight: 700;
+    letter-spacing: 0.3px;
 }
 
 .hanuman-blessing {
-    width: 200px;
-    height: 200px;
-    margin: 0 auto 24px;
+    width: 180px;
+    height: 180px;
+    margin: 0 auto 28px;
     position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow:
+        0 12px 40px rgba(255, 140, 66, 0.2),
+        0 0 0 8px rgba(255, 255, 255, 0.4),
+        0 0 0 12px rgba(255, 200, 150, 0.25);
+    animation: blessing-glow 5s ease-in-out infinite;
 }
 
 .blessing-image {
     width: 100%;
     height: 100%;
-    object-fit: contain;
-    animation: bless-rotation 4s ease-in-out infinite;
-    filter: drop-shadow(0 16px 32px rgba(255, 145, 0, 0.5));
+    object-fit: cover;
+    object-position: center top;
 }
 
-@keyframes bless-rotation {
+@keyframes blessing-glow {
     0%, 100% {
-        transform: rotateY(0deg) scale(1);
-        filter: drop-shadow(0 16px 32px rgba(255, 145, 0, 0.5));
+        box-shadow:
+            0 12px 40px rgba(255, 140, 66, 0.2),
+            0 0 0 8px rgba(255, 255, 255, 0.4),
+            0 0 0 12px rgba(255, 200, 150, 0.25);
     }
     50% {
-        transform: rotateY(180deg) scale(1.1);
-        filter: drop-shadow(0 20px 40px rgba(255, 145, 0, 0.7));
+        box-shadow:
+            0 16px 48px rgba(255, 140, 66, 0.3),
+            0 0 0 8px rgba(255, 255, 255, 0.5),
+            0 0 0 12px rgba(255, 200, 150, 0.35);
     }
 }
 
@@ -1340,49 +1358,49 @@ header {
 /* ===== RESPONSIVE ===== */
 @media (max-width: 480px) {
     .start-content {
-        padding: 32px 24px;
+        padding: 28px 20px;
         max-width: 95%;
     }
 
     .hanuman-icon {
-        width: 140px;
-        height: 140px;
+        width: 150px;
+        height: 150px;
     }
 
     .character-image {
-        width: 90px;
-        height: 90px;
+        width: 80px;
+        height: 80px;
     }
 
-    .guide-image {
-        width: 50px;
-        height: 50px;
+    .hanuman-guide {
+        width: 52px;
+        height: 52px;
     }
 
     #start-screen h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
     }
 
     .subtitle {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
     }
 
     .big-btn {
-        padding: 16px 32px;
-        font-size: 1.3rem;
+        padding: 14px 28px;
+        font-size: 1.25rem;
     }
 
     .btn-icon {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
     }
 
     .btn-icon-svg {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
     }
 
-    .blessing-image {
+    .hanuman-blessing {
         width: 140px;
         height: 140px;
     }
@@ -1438,44 +1456,44 @@ header {
 
 @media (min-width: 768px) {
     .start-content {
-        padding: 56px 48px;
+        padding: 52px 44px;
     }
 
     .hanuman-icon {
-        width: 220px;
-        height: 220px;
+        width: 240px;
+        height: 240px;
     }
 
     .character-image {
-        width: 140px;
-        height: 140px;
+        width: 120px;
+        height: 120px;
     }
 
-    .guide-image {
-        width: 80px;
-        height: 80px;
+    .hanuman-guide {
+        width: 76px;
+        height: 76px;
     }
 
     .verse-card {
-        padding: 40px 48px;
+        padding: 36px 44px;
     }
 
     .controls {
-        gap: 16px;
+        gap: 14px;
     }
 
     .control-btn {
-        padding: 18px 32px;
+        padding: 20px 28px;
         min-width: 100px;
     }
 
     .celebration-content {
-        padding: 56px 48px;
+        padding: 52px 44px;
     }
 
-    .blessing-image {
-        width: 100%;
-        height: 100%;
+    .hanuman-blessing {
+        width: 220px;
+        height: 220px;
     }
 }
 
