@@ -773,6 +773,10 @@
         } catch (error) {
             console.error("Error generating divine image:", error);
             if (loadingEl) loadingEl.classList.add("hidden");
+            // Show error on screen so it's visible
+            if (els.blessingMessage) {
+                els.blessingMessage.textContent = "Image could not load: " + error.message;
+            }
         }
 
         createDivineParticles();
@@ -867,7 +871,26 @@
             throw new Error(`fal.ai API error: ${response.status}`);
         }
 
-        const data = await response.json();
+        let data = await response.json();
+        console.log("fal.ai raw response:", JSON.stringify(data));
+
+        // fal.ai Flux Pro can return a queue/status response — poll until done
+        if (data.status === "IN_QUEUE" || data.status === "IN_PROGRESS" || data.request_id) {
+            const statusUrl = data.response_url || `https://queue.fal.run/fal-ai/flux-pro/requests/${data.request_id}`;
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 2000));
+                const poll = await fetch(statusUrl, {
+                    headers: { "Authorization": `Key ${FAL_API_KEY}` }
+                });
+                data = await poll.json();
+                console.log("fal.ai poll response:", JSON.stringify(data));
+                if (data.status === "COMPLETED" || data.images) break;
+            }
+        }
+
+        if (!data.images || !data.images[0]) {
+            throw new Error("No image in response: " + JSON.stringify(data));
+        }
         const imageUrl = data.images[0].url;
 
         // Cache result for this session
