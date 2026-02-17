@@ -380,31 +380,31 @@ const HANUMAN_CHALISA = [
 // Encouraging messages for children
 const ENCOURAGE_MESSAGES = {
     great: [
-        "Wow! That was amazing! Hanuman Ji is so happy! 🎉",
-        "Super duper! You sang that perfectly! ⭐",
-        "Incredible! You're a singing star! 🌟",
-        "Jai Hanuman! That was beautiful! 🙏",
-        "You're doing SO well! Keep going! 💪"
+        "Wow! That was amazing! Hanuman Ji is so happy!",
+        "Super duper! You sang that perfectly!",
+        "Incredible! You're a singing star!",
+        "Jai Hanuman! That was beautiful!",
+        "You're doing SO well! Keep going!"
     ],
     good: [
-        "Good try! You're getting better! 😊",
-        "Nice job! Let's keep practicing! 🎵",
-        "That was good! Want to try once more? 🎤",
-        "You're learning so fast! Great effort! 👏",
-        "Almost perfect! You're so close! ✨"
+        "Good try! You're getting better!",
+        "Nice job! Let's keep practicing!",
+        "That was good! Want to try once more?",
+        "You're learning so fast! Great effort!",
+        "Almost perfect! You're so close!"
     ],
     tryAgain: [
-        "Let's listen one more time and try again! 🎧",
-        "No worries! Even Hanuman practiced! Let's try! 💪",
-        "Good effort! Let's listen and try once more! 🎵",
-        "You're brave for trying! Let's do it again! 🐵",
-        "Practice makes perfect! One more time! 🌟"
+        "Let's listen one more time and try again!",
+        "No worries! Even Hanuman practiced! Let's try!",
+        "Good effort! Let's listen and try once more!",
+        "You're brave for trying! Let's do it again!",
+        "Practice makes perfect! One more time!"
     ],
     start: [
-        "Let's learn this verse together! Listen first! 🎧",
-        "Ready for a new verse? Listen carefully! 🎵",
-        "Here comes a new verse! Press Listen first! 🔊",
-        "New verse time! I'll say it, then you try! 🎤",
-        "Ooh, this is a great verse! Let's hear it! ✨"
+        "Let's learn this verse together! Listen first!",
+        "Ready for a new verse? Listen carefully!",
+        "Here comes a new verse! Press Listen first!",
+        "New verse time! I'll say it, then you try!",
+        "Ooh, this is a great verse! Let's hear it!"
     ]
 };

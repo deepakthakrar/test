@@ -262,7 +262,7 @@
             els.myTurnBtn.disabled = false;
             els.myTurnBtn.style.opacity = "1";
 
-            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone!");
 
             // Pulse the My Turn button
             els.myTurnBtn.classList.add("pulse-btn");
@@ -322,7 +322,7 @@
                 s.classList.add("done");
             });
 
-            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone!");
 
             // Pulse the My Turn button
             els.myTurnBtn.classList.add("pulse-btn");
@@ -394,7 +394,7 @@
 
         } catch (error) {
             console.error("Error accessing microphone:", error);
-            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
             return;
         }
 
@@ -406,7 +406,7 @@
         els.recordingIndicator.classList.add("active");
         disableControls(true);
 
-        setGuideMessage("I'm listening! Sing the verse now! 🎵");
+        setGuideMessage("I'm listening! Sing the verse now!");
 
         // Reset words for tracking
         resetKaraokeWords();
@@ -475,7 +475,7 @@
         console.warn("Recognition error:", event.error);
 
         if (event.error === "not-allowed") {
-            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
         }
 
         if (state.isRecording) {
@@ -523,19 +523,19 @@
     // ===== PLAYBACK RECORDING =====
     function playbackRecording() {
         if (!state.recordedAudioURL) {
-            setGuideMessage("No recording to play back yet! Try recording first! 🎤");
+            setGuideMessage("No recording to play back yet! Try recording first!");
             return;
         }
 
         // Create and play audio element
         const audio = new Audio(state.recordedAudioURL);
 
-        setGuideMessage("Playing back your recording! 🎵");
+        setGuideMessage("Playing back your recording!");
         els.playbackBtn.disabled = true;
         disableControls(true);
 
         audio.onended = () => {
-            setGuideMessage("That was you singing! Great job! 🌟");
+            setGuideMessage("That was you singing! Great job!");
             els.playbackBtn.disabled = false;
             disableControls(false);
         };
@@ -669,7 +669,7 @@
     function createFloatingStar() {
         const star = document.createElement("div");
         star.className = "floating-star";
-        star.textContent = "⭐";
+        star.textContent = "*";
         star.style.left = Math.random() * 80 + 10 + "%";
         star.style.top = "60%";
         document.body.appendChild(star);
@@ -710,8 +710,8 @@
     function updateNavButtons() {
         els.prevBtn.disabled = state.currentVerse === 0;
         els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
-            ? "Finish! 🎉"
-            : "Next ▶";
+            ? "Finish!"
+            : "Next";
     }
 
     // ===== FAL.AI IMAGE GENERATION =====
