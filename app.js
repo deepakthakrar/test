@@ -9,8 +9,8 @@
         stars: 0,
         isPlaying: false,
         isRecording: false,
-        hasListened: false,       // child must listen before singing
-        attemptCount: 0,          // attempts on current verse
+        hasListened: false,
+        attemptCount: 0,
         versesCompleted: new Set(),
         speechSynthesis: window.speechSynthesis,
         recognition: null,
@@ -20,6 +20,7 @@
         audioChunks: [],
         recordedAudioURL: null,
         audioStream: null,
+        blessingCount: 0,       // tracks how many blessing screens shown
     };
 
     // ===== DOM ELEMENTS =====
@@ -741,10 +742,15 @@
     async function showDivineBlessing() {
         showScreen("blessing");
 
-        // Show loading state
+        // Reset image state
         const loadingEl = document.querySelector(".image-loading");
+        const container = document.querySelector(".ai-hanuman-container");
         if (loadingEl) loadingEl.classList.remove("hidden");
-        if (els.aiHanumanImage) els.aiHanumanImage.classList.remove("loaded");
+        if (container) container.classList.remove("revealed");
+        if (els.aiHanumanImage) {
+            els.aiHanumanImage.classList.remove("loaded");
+            els.aiHanumanImage.src = "";
+        }
 
         // Speak blessing
         const blessingText = "Divine blessings from Lord Hanuman! You are doing wonderfully!";
@@ -754,45 +760,43 @@
         if (state.englishVoice) utterance.voice = state.englishVoice;
         state.speechSynthesis.speak(utterance);
 
-        // Get AI-generated Hanuman image with news context
+        // Get AI-generated divine image
         try {
             const imageData = await generateDivineImage();
 
-            if (imageData.imageUrl) {
-                if (els.aiHanumanImage) {
-                    els.aiHanumanImage.src = imageData.imageUrl;
-                    els.aiHanumanImage.onload = () => {
-                        if (loadingEl) loadingEl.classList.add("hidden");
-                        els.aiHanumanImage.classList.add("loaded");
-                    };
-                }
-            }
+            // Update title with deity name
+            const titleEl = document.querySelector(".blessing-title");
+            if (titleEl) titleEl.textContent = `${imageData.character} Blesses You 🙏`;
 
-            if (imageData.context && els.newsContext) {
+            if (els.blessingMessage) {
+                els.blessingMessage.textContent = imageData.message;
+            }
+            if (els.newsContext) {
                 els.newsContext.textContent = imageData.context;
             }
-        } catch (error) {
-            console.error("Error loading divine image:", error);
-            // Use fallback image
+
             if (els.aiHanumanImage) {
-                els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                const container = els.aiHanumanImage.closest(".ai-hanuman-container");
                 els.aiHanumanImage.onload = () => {
                     if (loadingEl) loadingEl.classList.add("hidden");
                     els.aiHanumanImage.classList.add("loaded");
+                    if (container) container.classList.add("revealed");
                 };
+                els.aiHanumanImage.onerror = () => {
+                    els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                    if (container) container.classList.add("revealed");
+                };
+                // Set src after handlers are attached
+                els.aiHanumanImage.src = imageData.imageUrl;
             }
-        }
 
-        // Update blessing message
-        if (els.blessingMessage) {
-            const messages = [
-                "Lord Hanuman blesses your dedication and devotion 🙏",
-                "Your voice fills the divine realm with joy ✨",
-                "Hanuman ji is proud of your efforts 🌟",
-                "The sacred verses flow through you beautifully 🎵",
-                "Divine protection surrounds you, brave learner 💫"
-            ];
-            els.blessingMessage.textContent = randomFrom(messages);
+        } catch (error) {
+            console.error("Error generating divine image:", error);
+            if (loadingEl) loadingEl.classList.add("hidden");
+            if (els.aiHanumanImage) {
+                els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                els.aiHanumanImage.classList.add("loaded");
+            }
         }
 
         // Add magical particles
@@ -809,38 +813,81 @@
         }
     }
 
+    // Divine character rotation: Hanuman → Ram → Sita → Hanuman...
+    const DIVINE_CHARACTERS = [
+        {
+            name: "Lord Hanuman",
+            messages: [
+                "Lord Hanuman watches over you with boundless love 🙏",
+                "Hanuman ji fills your heart with strength and courage ✨",
+                "Jai Hanuman! Your devotion brings divine blessings 🌟",
+            ],
+            prompts: [
+                "Lord Hanuman, divine Hindu deity, sitting in meditation on lotus flower, golden divine light rays, intricate ornate temple background, sacred saffron colors, majestic and serene, high detail digital art, spiritual illustration",
+                "Mighty Lord Hanuman flying through clouds carrying mountain, divine warrior, glowing aura, sacred hindu art, gold and saffron colors, peaceful expression, children friendly spiritual art",
+                "Lord Hanuman with folded hands in devotion, chest open showing Ram and Sita inside heart, divine golden glow, lotus flowers, sacred temple setting, warm spiritual colors",
+                "Lord Hanuman powerful and majestic, sacred flame in hand, divine radiance, ancient indian art style, gold ornaments, serene face, lotus throne, spiritual children illustration",
+            ]
+        },
+        {
+            name: "Lord Ram",
+            messages: [
+                "Lord Ram blesses you with wisdom and righteousness 🙏",
+                "Sri Ram's divine grace shines upon your journey ✨",
+                "Jai Shri Ram! May truth and courage guide your path 🌟",
+            ],
+            prompts: [
+                "Lord Ram, noble Hindu deity, standing with bow and arrow, wearing golden crown and silk garments, divine radiance, lotus flowers, sacred saffron and gold colors, serene majestic expression, children friendly spiritual art",
+                "Lord Shri Ram seated on golden throne, divine king, lotus flowers, golden ornaments, peaceful gentle expression, warm sacred light, ancient india, spiritual illustration for children",
+                "Lord Ram and divine light, sacred blue skin, gentle noble face, golden crown, colorful flowers, temple background, spiritual aura, soft warm colors, peaceful devotional art",
+            ]
+        },
+        {
+            name: "Mother Sita",
+            messages: [
+                "Mother Sita's grace and love surround you always 🙏",
+                "Sita Mata blesses your devotion with pure love ✨",
+                "The divine mother smiles upon your sacred learning 🌟",
+            ],
+            prompts: [
+                "Goddess Sita, graceful Hindu deity, wearing beautiful sari, flower garland, gentle loving expression, golden divine glow, lotus flowers, sacred temple, warm saffron colors, spiritual children illustration",
+                "Mother Sita seated gracefully, sacred Hindu goddess, soft divine light, colorful flowers, golden ornaments, peaceful serene face, ancient india setting, devotional spiritual art",
+                "Goddess Sita standing in garden of flowers, divine radiance, wearing red and gold sari, lotus in hand, gentle smile, sacred aura, warm golden light, beautiful spiritual illustration",
+            ]
+        }
+    ];
+
     async function generateDivineImage() {
-        // TODO: Integrate with actual AI image generation API
-        // For now, return a placeholder with context
+        state.blessingCount++;
+        const charIndex = (state.blessingCount - 1) % DIVINE_CHARACTERS.length;
+        const character = DIVINE_CHARACTERS[charIndex];
 
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        const prompt = randomFrom(character.prompts);
+        const seed = Math.floor(Math.random() * 999999);
+        const width = 512;
+        const height = 512;
 
-        // In production, you would:
-        // 1. Fetch today's news headlines from a news API
-        // 2. Generate a prompt combining Hanuman imagery with news context
-        // 3. Call DALL-E, Midjourney, or Stable Diffusion API
-        // 4. Return the generated image URL
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`;
 
-        const todayDate = new Date().toLocaleDateString('en-US', {
+        const todayDate = new Date().toLocaleDateString('en-IN', {
             weekday: 'long',
-            year: 'numeric',
+            day: 'numeric',
             month: 'long',
-            day: 'numeric'
+            year: 'numeric'
         });
 
-        // Placeholder contexts that would normally come from news API
         const contexts = [
-            `On this day, ${todayDate}, the world celebrates peace and harmony`,
-            `${todayDate} - A day of new beginnings and divine blessings`,
-            `Today's blessing: Strength and courage for all endeavors`,
-            `${todayDate} - May wisdom guide your path forward`
+            `A unique divine vision just for you on ${todayDate}`,
+            `${character.name} appears uniquely for you today`,
+            `A sacred vision on this blessed day — ${todayDate}`,
         ];
 
         return {
-            imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg",
+            imageUrl,
+            character: character.name,
+            message: randomFrom(character.messages),
             context: randomFrom(contexts),
-            prompt: "Divine Lord Hanuman in meditation, surrounded by golden light and lotus flowers"
         };
     }
 
