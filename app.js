@@ -9,13 +9,18 @@
         stars: 0,
         isPlaying: false,
         isRecording: false,
-        hasListened: false,       // child must listen before singing
-        attemptCount: 0,          // attempts on current verse
+        hasListened: false,
+        attemptCount: 0,
         versesCompleted: new Set(),
         speechSynthesis: window.speechSynthesis,
         recognition: null,
         hindiVoice: null,
         englishVoice: null,
+        mediaRecorder: null,
+        audioChunks: [],
+        recordedAudioURL: null,
+        audioStream: null,
+        blessingCount: 0,       // tracks how many blessing screens shown
     };
 
     // ===== DOM ELEMENTS =====
@@ -23,10 +28,12 @@
     const screens = {
         start: $("start-screen"),
         learn: $("learn-screen"),
+        blessing: $("blessing-screen"),
         celebration: $("celebration-screen"),
     };
     const els = {
         startBtn: $("start-btn"),
+        homeBtn: $("home-btn"),
         listenBtn: $("listen-btn"),
         listenSlowBtn: $("listen-slow-btn"),
         myTurnBtn: $("my-turn-btn"),
@@ -35,6 +42,7 @@
         prevBtn: $("prev-btn"),
         nextBtn: $("next-btn"),
         restartBtn: $("restart-btn"),
+        continueBtn: $("continue-btn"),
         enableAudioBtn: $("enable-audio-btn"),
         progressBar: $("progress-bar"),
         progressText: $("progress-text"),
@@ -54,6 +62,10 @@
         confettiContainer: $("confetti-container"),
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
+        playbackBtn: $("playback-btn"),
+        aiHanumanImage: $("ai-hanuman-image"),
+        blessingMessage: $("blessing-message"),
+        newsContext: $("news-context"),
     };
 
     // ===== INITIALIZATION =====
@@ -102,6 +114,9 @@
     // ===== EVENT BINDING =====
     function bindEvents() {
         els.startBtn.addEventListener("click", startLearning);
+        if (els.homeBtn) {
+            els.homeBtn.addEventListener("click", goHome);
+        }
         els.listenBtn.addEventListener("click", () => speakVerse(1.0));
         els.listenSlowBtn.addEventListener("click", () => speakVerse(0.6));
         els.myTurnBtn.addEventListener("click", startRecording);
@@ -110,6 +125,12 @@
         els.prevBtn.addEventListener("click", goToPrevVerse);
         els.nextBtn.addEventListener("click", goToNextVerse);
         els.restartBtn.addEventListener("click", restartApp);
+        if (els.continueBtn) {
+            els.continueBtn.addEventListener("click", continueFromBlessing);
+        }
+        if (els.playbackBtn) {
+            els.playbackBtn.addEventListener("click", playbackRecording);
+        }
         if (els.enableAudioBtn) {
             els.enableAudioBtn.addEventListener("click", () => {
                 // Unlock audio context for mobile
@@ -118,6 +139,11 @@
                 state.speechSynthesis.speak(utterance);
                 els.audioPermission.style.display = "none";
             });
+        }
+
+        // Add magical click effect on verse card
+        if (els.verseCard) {
+            els.verseCard.addEventListener("click", createMagicalSparkles);
         }
     }
 
@@ -147,6 +173,10 @@
         state.isPlaying = false;
         state.isRecording = false;
 
+        // Clear recording state
+        state.recordedAudioURL = null;
+        state.audioChunks = [];
+
         const verse = HANUMAN_CHALISA[index];
 
         // Update verse display
@@ -160,6 +190,11 @@
         els.highlightWord.classList.remove("visible");
         els.recordingIndicator.classList.remove("active");
         hideFeedback();
+
+        // Hide playback button for new verse
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
+        }
 
         // Update progress
         updateProgress();
@@ -209,33 +244,44 @@
         els.verseCard.classList.add("speaking");
         disableControls(true);
 
-        // We speak the transliteration (romanized) so children can follow along
-        const utterance = new SpeechSynthesisUtterance(verse.speakText);
-        utterance.rate = rate;
-        utterance.pitch = 1.1; // slightly higher for friendliness
-        utterance.volume = 1.0;
+        // Speak only the original Hindi/Sanskrit text
+        const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        hindiUtterance.rate = rate;
+        hindiUtterance.pitch = 1.1; // slightly higher for friendliness
+        hindiUtterance.volume = 1.0;
 
-        // Use Hindi voice if available, otherwise English with Hindi text
-        if (state.hindiVoice && rate >= 0.9) {
-            // Use Hindi voice for normal speed with Hindi text
-            const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        // Use Hindi voice if available
+        if (state.hindiVoice) {
             hindiUtterance.voice = state.hindiVoice;
-            hindiUtterance.rate = rate;
-            hindiUtterance.pitch = 1.1;
-            hindiUtterance.volume = 1.0;
-
-            hindiUtterance.onend = () => {
-                // Now speak transliteration
-                speakTransliteration(verse, rate);
-            };
-            hindiUtterance.onerror = () => {
-                speakTransliteration(verse, rate);
-            };
-
-            state.speechSynthesis.speak(hindiUtterance);
-        } else {
-            speakTransliteration(verse, rate);
         }
+
+        hindiUtterance.onend = () => {
+            state.isPlaying = false;
+            state.hasListened = true;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+
+            // Enable My Turn button
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+
+            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+
+            // Pulse the My Turn button
+            els.myTurnBtn.classList.add("pulse-btn");
+            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
+        };
+
+        hindiUtterance.onerror = () => {
+            state.isPlaying = false;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+            state.hasListened = true;
+        };
+
+        state.speechSynthesis.speak(hindiUtterance);
     }
 
     function speakTransliteration(verse, rate) {
@@ -306,15 +352,54 @@
     }
 
     // ===== SPEECH RECOGNITION =====
-    function startRecording() {
-        if (!state.recognition) {
-            // Fallback for browsers without speech recognition
-            showFeedback("great", "Great singing! Let's move on! (Speech recognition not available in this browser)");
-            awardStar();
-            return;
+    async function startRecording() {
+        if (state.isRecording) return;
+
+        // Hide playback button when starting new recording
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
         }
 
-        if (state.isRecording) return;
+        // Clear previous recording
+        state.audioChunks = [];
+        state.recordedAudioURL = null;
+
+        // Request microphone access and start recording
+        try {
+            state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Start MediaRecorder for actual audio recording
+            state.mediaRecorder = new MediaRecorder(state.audioStream);
+
+            state.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    state.audioChunks.push(event.data);
+                }
+            };
+
+            state.mediaRecorder.onstop = () => {
+                // Create audio blob and URL
+                const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                state.recordedAudioURL = URL.createObjectURL(audioBlob);
+
+                // Show playback button
+                if (els.playbackBtn) {
+                    els.playbackBtn.style.display = "inline-flex";
+                }
+
+                // Stop audio stream tracks
+                if (state.audioStream) {
+                    state.audioStream.getTracks().forEach(track => track.stop());
+                }
+            };
+
+            state.mediaRecorder.start();
+
+        } catch (error) {
+            console.error("Error accessing microphone:", error);
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+            return;
+        }
 
         state.isRecording = true;
         state.speechSynthesis.cancel();
@@ -332,11 +417,14 @@
         state._recognizedText = "";
         state._recognitionTimeout = null;
 
-        try {
-            state.recognition.start();
-        } catch (e) {
-            // Already started
-            console.warn("Recognition already running:", e);
+        // Also start speech recognition for transcription (if available)
+        if (state.recognition) {
+            try {
+                state.recognition.start();
+            } catch (e) {
+                // Already started
+                console.warn("Recognition already running:", e);
+            }
         }
 
         // Auto-stop after 15 seconds if child doesn't press done
@@ -357,10 +445,18 @@
 
         clearTimeout(state._autoStopTimer);
 
-        try {
-            state.recognition.stop();
-        } catch (e) {
-            // Already stopped
+        // Stop MediaRecorder
+        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+        }
+
+        // Stop speech recognition
+        if (state.recognition) {
+            try {
+                state.recognition.stop();
+            } catch (e) {
+                // Already stopped
+            }
         }
 
         // Evaluate what was heard
@@ -425,6 +521,35 @@
                 }
             }
         });
+    }
+
+    // ===== PLAYBACK RECORDING =====
+    function playbackRecording() {
+        if (!state.recordedAudioURL) {
+            setGuideMessage("No recording to play back yet! Try recording first! 🎤");
+            return;
+        }
+
+        // Create and play audio element
+        const audio = new Audio(state.recordedAudioURL);
+
+        setGuideMessage("Playing back your recording! 🎵");
+        els.playbackBtn.disabled = true;
+        disableControls(true);
+
+        audio.onended = () => {
+            setGuideMessage("That was you singing! Great job! 🌟");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.onerror = () => {
+            setGuideMessage("Oops! Couldn't play the recording.");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.play();
     }
 
     // ===== EVALUATION =====
@@ -558,11 +683,32 @@
         state.versesCompleted.add(state.currentVerse);
     }
 
+    // ===== HOME NAVIGATION =====
+    function goHome() {
+        state.speechSynthesis.cancel();
+        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+        }
+        if (state.recognition) {
+            try {
+                state.recognition.stop();
+            } catch (e) {}
+        }
+        showScreen("start");
+    }
+
     // ===== NAVIGATION =====
     function goToNextVerse() {
         if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
             state.speechSynthesis.cancel();
-            loadVerse(state.currentVerse + 1);
+
+            // Check if we should show divine blessing
+            const nextVerse = state.currentVerse + 1;
+            if ((nextVerse + 1) % 7 === 0 && nextVerse > 0) {
+                showDivineBlessing();
+            } else {
+                loadVerse(nextVerse);
+            }
         } else {
             showCelebration();
         }
@@ -590,6 +736,205 @@
         els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
             ? "Finish! 🎉"
             : "Next ▶";
+    }
+
+    // ===== DIVINE BLESSING SCREEN =====
+    async function showDivineBlessing() {
+        showScreen("blessing");
+
+        // Reset image state
+        const loadingEl = document.querySelector(".image-loading");
+        const container = document.querySelector(".ai-hanuman-container");
+        if (loadingEl) loadingEl.classList.remove("hidden");
+        if (container) container.classList.remove("revealed");
+        if (els.aiHanumanImage) {
+            els.aiHanumanImage.classList.remove("loaded");
+            els.aiHanumanImage.src = "";
+        }
+
+        // Speak blessing
+        const blessingText = "Divine blessings from Lord Hanuman! You are doing wonderfully!";
+        const utterance = new SpeechSynthesisUtterance(blessingText);
+        utterance.rate = 0.85;
+        utterance.pitch = 1.1;
+        if (state.englishVoice) utterance.voice = state.englishVoice;
+        state.speechSynthesis.speak(utterance);
+
+        // Get AI-generated divine image
+        try {
+            const imageData = await generateDivineImage();
+
+            // Update title with deity name
+            const titleEl = document.querySelector(".blessing-title");
+            if (titleEl) titleEl.textContent = `${imageData.character} Blesses You 🙏`;
+
+            if (els.blessingMessage) {
+                els.blessingMessage.textContent = imageData.message;
+            }
+            if (els.newsContext) {
+                els.newsContext.textContent = imageData.context;
+            }
+
+            if (els.aiHanumanImage) {
+                const container = els.aiHanumanImage.closest(".ai-hanuman-container");
+                els.aiHanumanImage.onload = () => {
+                    if (loadingEl) loadingEl.classList.add("hidden");
+                    els.aiHanumanImage.classList.add("loaded");
+                    if (container) container.classList.add("revealed");
+                };
+                els.aiHanumanImage.onerror = () => {
+                    els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                    if (container) container.classList.add("revealed");
+                };
+                // Set src after handlers are attached
+                els.aiHanumanImage.src = imageData.imageUrl;
+            }
+
+        } catch (error) {
+            console.error("Error generating divine image:", error);
+            if (loadingEl) loadingEl.classList.add("hidden");
+            if (els.aiHanumanImage) {
+                els.aiHanumanImage.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Ravivarmapress.jpg/960px-Ravivarmapress.jpg";
+                els.aiHanumanImage.classList.add("loaded");
+            }
+        }
+
+        // Add magical particles
+        createDivineParticles();
+    }
+
+    function continueFromBlessing() {
+        const nextVerse = state.currentVerse + 1;
+        if (nextVerse < HANUMAN_CHALISA.length) {
+            loadVerse(nextVerse);
+            showScreen("learn");
+        } else {
+            showCelebration();
+        }
+    }
+
+    // Divine character rotation: Hanuman → Ram → Sita → Hanuman...
+    const DIVINE_CHARACTERS = [
+        {
+            name: "Lord Hanuman",
+            messages: [
+                "Lord Hanuman watches over you with boundless love 🙏",
+                "Hanuman ji fills your heart with strength and courage ✨",
+                "Jai Hanuman! Your devotion brings divine blessings 🌟",
+            ],
+            prompts: [
+                "Lord Hanuman, divine Hindu deity, sitting in meditation on lotus flower, golden divine light rays, intricate ornate temple background, sacred saffron colors, majestic and serene, high detail digital art, spiritual illustration",
+                "Mighty Lord Hanuman flying through clouds carrying mountain, divine warrior, glowing aura, sacred hindu art, gold and saffron colors, peaceful expression, children friendly spiritual art",
+                "Lord Hanuman with folded hands in devotion, chest open showing Ram and Sita inside heart, divine golden glow, lotus flowers, sacred temple setting, warm spiritual colors",
+                "Lord Hanuman powerful and majestic, sacred flame in hand, divine radiance, ancient indian art style, gold ornaments, serene face, lotus throne, spiritual children illustration",
+            ]
+        },
+        {
+            name: "Lord Ram",
+            messages: [
+                "Lord Ram blesses you with wisdom and righteousness 🙏",
+                "Sri Ram's divine grace shines upon your journey ✨",
+                "Jai Shri Ram! May truth and courage guide your path 🌟",
+            ],
+            prompts: [
+                "Lord Ram, noble Hindu deity, standing with bow and arrow, wearing golden crown and silk garments, divine radiance, lotus flowers, sacred saffron and gold colors, serene majestic expression, children friendly spiritual art",
+                "Lord Shri Ram seated on golden throne, divine king, lotus flowers, golden ornaments, peaceful gentle expression, warm sacred light, ancient india, spiritual illustration for children",
+                "Lord Ram and divine light, sacred blue skin, gentle noble face, golden crown, colorful flowers, temple background, spiritual aura, soft warm colors, peaceful devotional art",
+            ]
+        },
+        {
+            name: "Mother Sita",
+            messages: [
+                "Mother Sita's grace and love surround you always 🙏",
+                "Sita Mata blesses your devotion with pure love ✨",
+                "The divine mother smiles upon your sacred learning 🌟",
+            ],
+            prompts: [
+                "Goddess Sita, graceful Hindu deity, wearing beautiful sari, flower garland, gentle loving expression, golden divine glow, lotus flowers, sacred temple, warm saffron colors, spiritual children illustration",
+                "Mother Sita seated gracefully, sacred Hindu goddess, soft divine light, colorful flowers, golden ornaments, peaceful serene face, ancient india setting, devotional spiritual art",
+                "Goddess Sita standing in garden of flowers, divine radiance, wearing red and gold sari, lotus in hand, gentle smile, sacred aura, warm golden light, beautiful spiritual illustration",
+            ]
+        }
+    ];
+
+    async function generateDivineImage() {
+        state.blessingCount++;
+        const charIndex = (state.blessingCount - 1) % DIVINE_CHARACTERS.length;
+        const character = DIVINE_CHARACTERS[charIndex];
+
+        const prompt = randomFrom(character.prompts);
+        const seed = Math.floor(Math.random() * 999999);
+        const width = 512;
+        const height = 512;
+
+        const encodedPrompt = encodeURIComponent(prompt);
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&nologo=true&model=flux`;
+
+        const todayDate = new Date().toLocaleDateString('en-IN', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        const contexts = [
+            `A unique divine vision just for you on ${todayDate}`,
+            `${character.name} appears uniquely for you today`,
+            `A sacred vision on this blessed day — ${todayDate}`,
+        ];
+
+        return {
+            imageUrl,
+            character: character.name,
+            message: randomFrom(character.messages),
+            context: randomFrom(contexts),
+        };
+    }
+
+    // ===== MAGICAL EFFECTS =====
+    function createDivineParticles() {
+        const colors = ["#FFD700", "#FFA500", "#FF8C42", "#FFE5B4"];
+        const container = document.querySelector(".blessing-screen-content");
+        if (!container) return;
+
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const particle = document.createElement("div");
+                particle.style.position = "absolute";
+                particle.style.width = "6px";
+                particle.style.height = "6px";
+                particle.style.borderRadius = "50%";
+                particle.style.backgroundColor = randomFrom(colors);
+                particle.style.left = Math.random() * 100 + "%";
+                particle.style.top = Math.random() * 100 + "%";
+                particle.style.opacity = "0.8";
+                particle.style.pointerEvents = "none";
+                particle.style.animation = `divine-particle ${2 + Math.random() * 2}s ease-out forwards`;
+                container.appendChild(particle);
+
+                setTimeout(() => particle.remove(), 4000);
+            }, i * 50);
+        }
+    }
+
+    function createMagicalSparkles(event) {
+        const colors = ["#FFD700", "#FFA500", "#FF69B4", "#87CEEB"];
+
+        for (let i = 0; i < 5; i++) {
+            const sparkle = document.createElement("div");
+            sparkle.textContent = "✨";
+            sparkle.style.position = "fixed";
+            sparkle.style.left = event.clientX + "px";
+            sparkle.style.top = event.clientY + "px";
+            sparkle.style.pointerEvents = "none";
+            sparkle.style.fontSize = "20px";
+            sparkle.style.zIndex = "1000";
+            sparkle.style.animation = `sparkle-burst ${0.8 + Math.random() * 0.4}s ease-out forwards`;
+            sparkle.style.setProperty("--angle", Math.random() * 360 + "deg");
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => sparkle.remove(), 1200);
+        }
     }
 
     // ===== CELEBRATION =====
@@ -635,11 +980,8 @@
 
     // ===== HELPERS =====
     function setGuideMessage(text) {
-        els.guideMessage.textContent = text;
-        // Animate bubble
-        els.speechBubble.style.animation = "none";
-        els.speechBubble.offsetHeight;
-        els.speechBubble.style.animation = "slide-up 0.3s ease";
+        // Guide removed, but keep function for compatibility
+        console.log("Guide message:", text);
     }
 
     function disableControls(disabled) {
