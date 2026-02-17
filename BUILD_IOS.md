@@ -110,3 +110,70 @@ If speech recognition prompts are needed, add to `Info.plist`:
 ```xml
 <key>NSSpeechRecognitionUsageDescription</key>
 <string>We listen to your singing to help you learn the Hanuman Chalisa!</string>
+```
+
+---
+
+## Automated Build with GitHub Actions
+
+Instead of building manually on a Mac, push to `main` and GitHub Actions will
+build, sign, and upload the app to App Store Connect automatically.
+
+### One-time setup: GitHub Secrets
+
+Go to your GitHub repo > **Settings > Secrets and variables > Actions** and add
+these 6 secrets:
+
+| Secret name | What it is | How to get it |
+|---|---|---|
+| `CERTIFICATE_P12` | Base64-encoded distribution certificate | See step 1 below |
+| `CERTIFICATE_PASSWORD` | Password you set when exporting the .p12 | You choose it |
+| `PROVISIONING_PROFILE` | Base64-encoded provisioning profile | See step 2 below |
+| `PROFILE_NAME` | Name of the provisioning profile | Visible in Apple Developer portal |
+| `KEYCHAIN_PASSWORD` | Any random password for temp keychain | Make one up (e.g. `gh-actions-kc-2024`) |
+| `ASC_KEY_ID` | App Store Connect API Key ID | See step 3 below |
+| `ASC_ISSUER_ID` | App Store Connect API Issuer ID | See step 3 below |
+| `ASC_PRIVATE_KEY` | App Store Connect API private key (.p8 content) | See step 3 below |
+
+### Step 1: Export your distribution certificate as .p12
+
+1. Open **Keychain Access** on your Mac
+2. Find your "Apple Distribution" certificate
+3. Right-click > **Export** > save as `.p12` with a password
+4. Base64-encode it:
+   ```bash
+   base64 -i Certificates.p12 | pbcopy
+   ```
+5. Paste into the `CERTIFICATE_P12` GitHub secret
+
+### Step 2: Create a provisioning profile
+
+1. Go to https://developer.apple.com/account/resources/profiles
+2. Click **+** > **App Store Connect** distribution
+3. Select your App ID (`com.hanumanchalisa.kids`)
+4. Select your distribution certificate
+5. Download the `.mobileprovision` file
+6. Base64-encode it:
+   ```bash
+   base64 -i profile.mobileprovision | pbcopy
+   ```
+7. Paste into the `PROVISIONING_PROFILE` secret
+8. Put the profile name into the `PROFILE_NAME` secret
+
+### Step 3: Create an App Store Connect API Key
+
+1. Go to https://appstoreconnect.apple.com/access/integrations/api
+2. Click **+** to generate a new key
+3. Name: "GitHub Actions", Access: "App Manager"
+4. Download the `.p8` file (you can only download it once!)
+5. Copy the **Key ID** into `ASC_KEY_ID`
+6. Copy the **Issuer ID** (shown at top of page) into `ASC_ISSUER_ID`
+7. Paste the contents of the `.p8` file into `ASC_PRIVATE_KEY`
+
+### Triggering a build
+
+- **Automatic**: Push to `main` branch
+- **Manual**: Go to Actions tab > "Build & Upload iOS App" > "Run workflow"
+
+After the build uploads, go to https://appstoreconnect.apple.com to add
+screenshots, description, and submit for Apple's review.
