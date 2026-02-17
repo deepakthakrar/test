@@ -16,7 +16,20 @@
         recognition: null,
         hindiVoice: null,
         englishVoice: null,
+        mediaRecorder: null,
+        audioChunks: [],
+        recordedAudioURL: null,
+        audioStream: null,
+        playerName: "",           // child's name for personalization
     };
+
+    // ===== IMAGE CACHE =====
+    // Keyed by prompt text to avoid regenerating the same image in a session
+    const imageCache = new Map();
+
+    // ===== FAL.AI CONFIG =====
+    const FAL_API_KEY = "00fde813-ff4a-4900-9209-5f57aa16d44c:ab5efb0a1449b20dadb915b6d5de3d61";
+    const FAL_ENDPOINT = "https://fal.run/fal-ai/flux-pro";
 
     // ===== DOM ELEMENTS =====
     const $ = (id) => document.getElementById(id);
@@ -35,6 +48,7 @@
         prevBtn: $("prev-btn"),
         nextBtn: $("next-btn"),
         restartBtn: $("restart-btn"),
+        continueBtn: $("continue-btn"),
         enableAudioBtn: $("enable-audio-btn"),
         progressBar: $("progress-bar"),
         progressText: $("progress-text"),
@@ -54,6 +68,11 @@
         confettiContainer: $("confetti-container"),
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
+        playbackBtn: $("playback-btn"),
+        celebrationHanumanImage: $("celebration-hanuman-image"),
+        playerNameInput: $("player-name"),
+        celebrationTitle: $("celebration-title"),
+        celebrationText: $("celebration-text"),
     };
 
     // ===== INITIALIZATION =====
@@ -110,6 +129,9 @@
         els.prevBtn.addEventListener("click", goToPrevVerse);
         els.nextBtn.addEventListener("click", goToNextVerse);
         els.restartBtn.addEventListener("click", restartApp);
+        if (els.playbackBtn) {
+            els.playbackBtn.addEventListener("click", playbackRecording);
+        }
         if (els.enableAudioBtn) {
             els.enableAudioBtn.addEventListener("click", () => {
                 // Unlock audio context for mobile
@@ -129,12 +151,20 @@
 
     // ===== START LEARNING =====
     function startLearning() {
+        // Capture the child's name
+        state.playerName = (els.playerNameInput.value || "").trim();
+
         showScreen("learn");
         state.currentVerse = 0;
         state.stars = 0;
         state.versesCompleted.clear();
         updateStarDisplay();
         loadVerse(0);
+
+        // Personalized welcome in the guide bubble
+        if (state.playerName) {
+            setGuideMessage(`Hi ${state.playerName}! Let's learn together! Press Listen first!`);
+        }
     }
 
     // ===== VERSE LOADING =====
@@ -146,6 +176,10 @@
         state.attemptCount = 0;
         state.isPlaying = false;
         state.isRecording = false;
+
+        // Clear recording state
+        state.recordedAudioURL = null;
+        state.audioChunks = [];
 
         const verse = HANUMAN_CHALISA[index];
 
@@ -161,12 +195,25 @@
         els.recordingIndicator.classList.remove("active");
         hideFeedback();
 
+        // Hide playback button for new verse
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
+        }
+
+        // Pre-generate celebration image at verse 25 so it's ready by the end
+        if (index >= 25) {
+            preGenerateCelebrationImage();
+        }
+
         // Update progress
         updateProgress();
         updateNavButtons();
 
-        // Guide message
-        const msg = randomFrom(ENCOURAGE_MESSAGES.start);
+        // Guide message (personalized with name)
+        let msg = randomFrom(ENCOURAGE_MESSAGES.start);
+        if (state.playerName) {
+            msg = msg.replace("Let's", `${state.playerName}, let's`);
+        }
         setGuideMessage(msg);
 
         // Disable my-turn until they listen
@@ -209,33 +256,46 @@
         els.verseCard.classList.add("speaking");
         disableControls(true);
 
-        // We speak the transliteration (romanized) so children can follow along
-        const utterance = new SpeechSynthesisUtterance(verse.speakText);
-        utterance.rate = rate;
-        utterance.pitch = 1.1; // slightly higher for friendliness
-        utterance.volume = 1.0;
+        // Speak only the original Hindi/Sanskrit text
+        const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        hindiUtterance.rate = rate;
+        hindiUtterance.pitch = 1.1; // slightly higher for friendliness
+        hindiUtterance.volume = 1.0;
 
-        // Use Hindi voice if available, otherwise English with Hindi text
-        if (state.hindiVoice && rate >= 0.9) {
-            // Use Hindi voice for normal speed with Hindi text
-            const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
+        // Use Hindi voice if available
+        if (state.hindiVoice) {
             hindiUtterance.voice = state.hindiVoice;
-            hindiUtterance.rate = rate;
-            hindiUtterance.pitch = 1.1;
-            hindiUtterance.volume = 1.0;
-
-            hindiUtterance.onend = () => {
-                // Now speak transliteration
-                speakTransliteration(verse, rate);
-            };
-            hindiUtterance.onerror = () => {
-                speakTransliteration(verse, rate);
-            };
-
-            state.speechSynthesis.speak(hindiUtterance);
-        } else {
-            speakTransliteration(verse, rate);
         }
+
+        hindiUtterance.onend = () => {
+            state.isPlaying = false;
+            state.hasListened = true;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+
+            // Enable My Turn button
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+
+            setGuideMessage(state.playerName
+                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
+                : "Great listening! Now it's YOUR turn! Press My Turn!");
+
+            // Pulse the My Turn button
+            els.myTurnBtn.classList.add("pulse-btn");
+            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
+        };
+
+        hindiUtterance.onerror = () => {
+            state.isPlaying = false;
+            els.verseCard.classList.remove("speaking");
+            disableControls(false);
+            els.myTurnBtn.disabled = false;
+            els.myTurnBtn.style.opacity = "1";
+            state.hasListened = true;
+        };
+
+        state.speechSynthesis.speak(hindiUtterance);
     }
 
     function speakTransliteration(verse, rate) {
@@ -279,7 +339,9 @@
                 s.classList.add("done");
             });
 
-            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone! 🎤");
+            setGuideMessage(state.playerName
+                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
+                : "Great listening! Now it's YOUR turn! Press My Turn!");
 
             // Pulse the My Turn button
             els.myTurnBtn.classList.add("pulse-btn");
@@ -306,15 +368,54 @@
     }
 
     // ===== SPEECH RECOGNITION =====
-    function startRecording() {
-        if (!state.recognition) {
-            // Fallback for browsers without speech recognition
-            showFeedback("great", "Great singing! Let's move on! (Speech recognition not available in this browser)");
-            awardStar();
-            return;
+    async function startRecording() {
+        if (state.isRecording) return;
+
+        // Hide playback button when starting new recording
+        if (els.playbackBtn) {
+            els.playbackBtn.style.display = "none";
         }
 
-        if (state.isRecording) return;
+        // Clear previous recording
+        state.audioChunks = [];
+        state.recordedAudioURL = null;
+
+        // Request microphone access and start recording
+        try {
+            state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+            // Start MediaRecorder for actual audio recording
+            state.mediaRecorder = new MediaRecorder(state.audioStream);
+
+            state.mediaRecorder.ondataavailable = (event) => {
+                if (event.data.size > 0) {
+                    state.audioChunks.push(event.data);
+                }
+            };
+
+            state.mediaRecorder.onstop = () => {
+                // Create audio blob and URL
+                const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
+                state.recordedAudioURL = URL.createObjectURL(audioBlob);
+
+                // Show playback button
+                if (els.playbackBtn) {
+                    els.playbackBtn.style.display = "inline-flex";
+                }
+
+                // Stop audio stream tracks
+                if (state.audioStream) {
+                    state.audioStream.getTracks().forEach(track => track.stop());
+                }
+            };
+
+            state.mediaRecorder.start();
+
+        } catch (error) {
+            console.error("Error accessing microphone:", error);
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
+            return;
+        }
 
         state.isRecording = true;
         state.speechSynthesis.cancel();
@@ -324,7 +425,7 @@
         els.recordingIndicator.classList.add("active");
         disableControls(true);
 
-        setGuideMessage("I'm listening! Sing the verse now! 🎵");
+        setGuideMessage("I'm listening! Sing the verse now!");
 
         // Reset words for tracking
         resetKaraokeWords();
@@ -332,11 +433,14 @@
         state._recognizedText = "";
         state._recognitionTimeout = null;
 
-        try {
-            state.recognition.start();
-        } catch (e) {
-            // Already started
-            console.warn("Recognition already running:", e);
+        // Also start speech recognition for transcription (if available)
+        if (state.recognition) {
+            try {
+                state.recognition.start();
+            } catch (e) {
+                // Already started
+                console.warn("Recognition already running:", e);
+            }
         }
 
         // Auto-stop after 15 seconds if child doesn't press done
@@ -357,10 +461,18 @@
 
         clearTimeout(state._autoStopTimer);
 
-        try {
-            state.recognition.stop();
-        } catch (e) {
-            // Already stopped
+        // Stop MediaRecorder
+        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
+            state.mediaRecorder.stop();
+        }
+
+        // Stop speech recognition
+        if (state.recognition) {
+            try {
+                state.recognition.stop();
+            } catch (e) {
+                // Already stopped
+            }
         }
 
         // Evaluate what was heard
@@ -382,7 +494,7 @@
         console.warn("Recognition error:", event.error);
 
         if (event.error === "not-allowed") {
-            setGuideMessage("Oops! Please allow microphone access so I can hear you sing! 🎤");
+            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
         }
 
         if (state.isRecording) {
@@ -425,6 +537,35 @@
                 }
             }
         });
+    }
+
+    // ===== PLAYBACK RECORDING =====
+    function playbackRecording() {
+        if (!state.recordedAudioURL) {
+            setGuideMessage("No recording to play back yet! Try recording first!");
+            return;
+        }
+
+        // Create and play audio element
+        const audio = new Audio(state.recordedAudioURL);
+
+        setGuideMessage("Playing back your recording!");
+        els.playbackBtn.disabled = true;
+        disableControls(true);
+
+        audio.onended = () => {
+            setGuideMessage("That was you singing! Great job!");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.onerror = () => {
+            setGuideMessage("Oops! Couldn't play the recording.");
+            els.playbackBtn.disabled = false;
+            disableControls(false);
+        };
+
+        audio.play();
     }
 
     // ===== EVALUATION =====
@@ -547,7 +688,7 @@
     function createFloatingStar() {
         const star = document.createElement("div");
         star.className = "floating-star";
-        star.textContent = "⭐";
+        star.textContent = "*";
         star.style.left = Math.random() * 80 + 10 + "%";
         star.style.top = "60%";
         document.body.appendChild(star);
@@ -560,6 +701,12 @@
 
     // ===== NAVIGATION =====
     function goToNextVerse() {
+        // Award a star if user listened to this verse and it wasn't already completed
+        if (state.hasListened && !state.versesCompleted.has(state.currentVerse)) {
+            awardStar();
+            markVerseCompleted();
+        }
+
         if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
             state.speechSynthesis.cancel();
             loadVerse(state.currentVerse + 1);
@@ -588,8 +735,83 @@
     function updateNavButtons() {
         els.prevBtn.disabled = state.currentVerse === 0;
         els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
-            ? "Finish! 🎉"
-            : "Next ▶";
+            ? "Finish!"
+            : "Next";
+    }
+
+    // ===== FAL.AI IMAGE GENERATION =====
+    async function generateHanumanImage(prompt) {
+        if (imageCache.has(prompt)) {
+            return imageCache.get(prompt);
+        }
+
+        const response = await fetch(FAL_ENDPOINT, {
+            method: "POST",
+            headers: {
+                "Authorization": `Key ${FAL_API_KEY}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                prompt: prompt,
+                image_size: "square_hd",
+                num_images: 1,
+                safety_tolerance: "6",
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`fal.ai API error: ${response.status}`);
+        }
+
+        let data = await response.json();
+        console.log("fal.ai raw response:", JSON.stringify(data));
+
+        // Handle async queue responses
+        if (data.status === "IN_QUEUE" || data.status === "IN_PROGRESS" || data.request_id) {
+            const statusUrl = data.response_url || `https://queue.fal.run/fal-ai/flux-pro/requests/${data.request_id}`;
+            for (let i = 0; i < 30; i++) {
+                await new Promise(r => setTimeout(r, 2000));
+                const poll = await fetch(statusUrl, {
+                    headers: { "Authorization": `Key ${FAL_API_KEY}` }
+                });
+                data = await poll.json();
+                console.log("fal.ai poll response:", JSON.stringify(data));
+                if (data.status === "COMPLETED" || data.images) break;
+            }
+        }
+
+        if (!data.images || !data.images[0]) {
+            throw new Error("No image in response: " + JSON.stringify(data));
+        }
+
+        const imageUrl = data.images[0].url;
+        imageCache.set(prompt, imageUrl);
+        return imageUrl;
+    }
+
+    function applyImageToElement(imgEl, loadingEl, url) {
+        imgEl.onload = () => {
+            if (loadingEl) loadingEl.classList.add("hidden");
+            imgEl.classList.add("loaded");
+        };
+        imgEl.onerror = () => {
+            if (loadingEl) loadingEl.classList.add("hidden");
+        };
+        imgEl.src = url;
+    }
+
+    // Pre-generate celebration image starting at verse 25 so it's ready by the end
+    const CELEBRATION_PROMPT = "Lord Hanuman joyfully celebrating victory, arms raised in triumph, divine golden light, colorful flowers raining down, sacred saffron colors, warm jubilant energy, children friendly spiritual illustration, vibrant festive art";
+    let celebrationImagePromise = null;
+
+    function preGenerateCelebrationImage() {
+        if (!celebrationImagePromise) {
+            celebrationImagePromise = generateHanumanImage(CELEBRATION_PROMPT);
+            celebrationImagePromise.catch(err => {
+                console.error("Pre-generation error:", err);
+                celebrationImagePromise = null; // allow retry on celebration screen
+            });
+        }
     }
 
     // ===== CELEBRATION =====
@@ -598,14 +820,42 @@
         els.finalStars.textContent = state.stars;
         createConfetti();
 
-        // Speak congratulation
-        const congrats = new SpeechSynthesisUtterance(
-            "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!"
-        );
+        // Personalize celebration with name
+        const name = state.playerName;
+        if (name) {
+            els.celebrationTitle.textContent = `Amazing Job, ${name}!`;
+            els.celebrationText.textContent = `${name}, you sang the Hanuman Chalisa!`;
+        } else {
+            els.celebrationTitle.textContent = "Amazing Job!";
+            els.celebrationText.textContent = "You sang the Hanuman Chalisa!";
+        }
+
+        // Reset celebration image
+        const loadingEl = document.getElementById("celebration-image-loading");
+        if (loadingEl) loadingEl.classList.remove("hidden");
+        if (els.celebrationHanumanImage) {
+            els.celebrationHanumanImage.classList.remove("loaded");
+            els.celebrationHanumanImage.src = "";
+        }
+
+        // Speak congratulation (personalized)
+        const congratsText = name
+            ? `Wow! ${name}, you completed the Hanuman Chalisa! Jai Hanuman! ${name}, you are amazing!`
+            : "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!";
+        const congrats = new SpeechSynthesisUtterance(congratsText);
         congrats.rate = 0.9;
         congrats.pitch = 1.2;
         if (state.englishVoice) congrats.voice = state.englishVoice;
         state.speechSynthesis.speak(congrats);
+
+        // Use pre-generated image if available, otherwise generate now
+        const imgPromise = celebrationImagePromise || generateHanumanImage(CELEBRATION_PROMPT);
+        imgPromise.then(url => {
+            applyImageToElement(els.celebrationHanumanImage, loadingEl, url);
+        }).catch(err => {
+            console.error("Celebration image error:", err);
+            if (loadingEl) loadingEl.classList.add("hidden");
+        });
     }
 
     function createConfetti() {
@@ -630,7 +880,12 @@
     // ===== RESTART =====
     function restartApp() {
         state.speechSynthesis.cancel();
+        celebrationImagePromise = null;
         showScreen("start");
+        // Keep name filled in so they don't have to re-type
+        if (state.playerName && els.playerNameInput) {
+            els.playerNameInput.value = state.playerName;
+        }
     }
 
     // ===== HELPERS =====
