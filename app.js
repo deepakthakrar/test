@@ -68,7 +68,6 @@
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
         playbackBtn: $("playback-btn"),
-        startHanumanImage: $("start-hanuman-image"),
         celebrationHanumanImage: $("celebration-hanuman-image"),
     };
 
@@ -77,7 +76,6 @@
         setupSpeechSynthesis();
         setupSpeechRecognition();
         bindEvents();
-        loadStartImage();
     }
 
     function setupSpeechSynthesis() {
@@ -188,6 +186,11 @@
         // Hide playback button for new verse
         if (els.playbackBtn) {
             els.playbackBtn.style.display = "none";
+        }
+
+        // Pre-generate celebration image at verse 25 so it's ready by the end
+        if (index >= 25) {
+            preGenerateCelebrationImage();
         }
 
         // Update progress
@@ -772,19 +775,17 @@
         imgEl.src = url;
     }
 
-    async function loadStartImage() {
-        const loadingEl = document.getElementById("start-image-loading");
-        const img = els.startHanumanImage;
-        if (!img) return;
+    // Pre-generate celebration image starting at verse 25 so it's ready by the end
+    const CELEBRATION_PROMPT = "Lord Hanuman joyfully celebrating victory, arms raised in triumph, divine golden light, colorful flowers raining down, sacred saffron colors, warm jubilant energy, children friendly spiritual illustration, vibrant festive art";
+    let celebrationImagePromise = null;
 
-        const prompt = "Lord Hanuman, majestic divine Hindu deity, sitting in meditation, golden divine light rays, intricate ornate temple background, sacred saffron and gold colors, lotus flowers, children friendly spiritual art, vibrant colors, high detail";
-
-        try {
-            const url = await generateHanumanImage(prompt);
-            applyImageToElement(img, loadingEl, url);
-        } catch (error) {
-            console.error("Start image error:", error);
-            if (loadingEl) loadingEl.classList.add("hidden");
+    function preGenerateCelebrationImage() {
+        if (!celebrationImagePromise) {
+            celebrationImagePromise = generateHanumanImage(CELEBRATION_PROMPT);
+            celebrationImagePromise.catch(err => {
+                console.error("Pre-generation error:", err);
+                celebrationImagePromise = null; // allow retry on celebration screen
+            });
         }
     }
 
@@ -811,9 +812,9 @@
         if (state.englishVoice) congrats.voice = state.englishVoice;
         state.speechSynthesis.speak(congrats);
 
-        // Generate unique celebration image
-        const prompt = "Lord Hanuman joyfully celebrating victory, arms raised in triumph, divine golden light, colorful flowers raining down, sacred saffron colors, warm jubilant energy, children friendly spiritual illustration, vibrant festive art";
-        generateHanumanImage(prompt).then(url => {
+        // Use pre-generated image if available, otherwise generate now
+        const imgPromise = celebrationImagePromise || generateHanumanImage(CELEBRATION_PROMPT);
+        imgPromise.then(url => {
             applyImageToElement(els.celebrationHanumanImage, loadingEl, url);
         }).catch(err => {
             console.error("Celebration image error:", err);
