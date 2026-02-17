@@ -1,0 +1,19 @@
+{
+  "name": "hanuman-chalisa-kids",
+  "version": "1.0.0",
+  "description": "An interactive app to help kids learn and sing the Hanuman Chalisa.",
+  "main": "app.js",
+  "scripts": {
+    "build": "mkdir -p www && cp index.html style.css app.js verses.js manifest.json sw.js www/ && cp -r icons www/ 2>/dev/null || true",
+    "cap:init": "npx cap add ios",
+    "cap:sync": "npm run build && npx cap sync ios",
+    "cap:open": "npx cap open ios"
+  },
+  "keywords": ["hanuman-chalisa", "kids", "learning", "singing"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0"
+  }
+}

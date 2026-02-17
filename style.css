@@ -33,6 +33,9 @@ body {
     display: none;
     min-height: 100vh;
     padding: 20px;
+    /* iPhone safe areas (notch, home indicator) */
+    padding-top: max(20px, env(safe-area-inset-top));
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
 }
 .screen.active {
     display: flex;
