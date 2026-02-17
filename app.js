@@ -20,6 +20,7 @@
         audioChunks: [],
         recordedAudioURL: null,
         audioStream: null,
+        playerName: "",           // child's name for personalization
     };
 
     // ===== IMAGE CACHE =====
@@ -69,6 +70,9 @@
         audioPermission: $("audio-permission"),
         playbackBtn: $("playback-btn"),
         celebrationHanumanImage: $("celebration-hanuman-image"),
+        playerNameInput: $("player-name"),
+        celebrationTitle: $("celebration-title"),
+        celebrationText: $("celebration-text"),
     };
 
     // ===== INITIALIZATION =====
@@ -147,12 +151,20 @@
 
     // ===== START LEARNING =====
     function startLearning() {
+        // Capture the child's name
+        state.playerName = (els.playerNameInput.value || "").trim();
+
         showScreen("learn");
         state.currentVerse = 0;
         state.stars = 0;
         state.versesCompleted.clear();
         updateStarDisplay();
         loadVerse(0);
+
+        // Personalized welcome in the guide bubble
+        if (state.playerName) {
+            setGuideMessage(`Hi ${state.playerName}! Let's learn together! Press Listen first!`);
+        }
     }
 
     // ===== VERSE LOADING =====
@@ -197,8 +209,11 @@
         updateProgress();
         updateNavButtons();
 
-        // Guide message
-        const msg = randomFrom(ENCOURAGE_MESSAGES.start);
+        // Guide message (personalized with name)
+        let msg = randomFrom(ENCOURAGE_MESSAGES.start);
+        if (state.playerName) {
+            msg = msg.replace("Let's", `${state.playerName}, let's`);
+        }
         setGuideMessage(msg);
 
         // Disable my-turn until they listen
@@ -262,7 +277,9 @@
             els.myTurnBtn.disabled = false;
             els.myTurnBtn.style.opacity = "1";
 
-            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone!");
+            setGuideMessage(state.playerName
+                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
+                : "Great listening! Now it's YOUR turn! Press My Turn!");
 
             // Pulse the My Turn button
             els.myTurnBtn.classList.add("pulse-btn");
@@ -322,7 +339,9 @@
                 s.classList.add("done");
             });
 
-            setGuideMessage("Great listening! Now it's YOUR turn! Press the microphone!");
+            setGuideMessage(state.playerName
+                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
+                : "Great listening! Now it's YOUR turn! Press My Turn!");
 
             // Pulse the My Turn button
             els.myTurnBtn.classList.add("pulse-btn");
@@ -801,6 +820,16 @@
         els.finalStars.textContent = state.stars;
         createConfetti();
 
+        // Personalize celebration with name
+        const name = state.playerName;
+        if (name) {
+            els.celebrationTitle.textContent = `Amazing Job, ${name}!`;
+            els.celebrationText.textContent = `${name}, you sang the Hanuman Chalisa!`;
+        } else {
+            els.celebrationTitle.textContent = "Amazing Job!";
+            els.celebrationText.textContent = "You sang the Hanuman Chalisa!";
+        }
+
         // Reset celebration image
         const loadingEl = document.getElementById("celebration-image-loading");
         if (loadingEl) loadingEl.classList.remove("hidden");
@@ -809,10 +838,11 @@
             els.celebrationHanumanImage.src = "";
         }
 
-        // Speak congratulation
-        const congrats = new SpeechSynthesisUtterance(
-            "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!"
-        );
+        // Speak congratulation (personalized)
+        const congratsText = name
+            ? `Wow! ${name}, you completed the Hanuman Chalisa! Jai Hanuman! ${name}, you are amazing!`
+            : "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!";
+        const congrats = new SpeechSynthesisUtterance(congratsText);
         congrats.rate = 0.9;
         congrats.pitch = 1.2;
         if (state.englishVoice) congrats.voice = state.englishVoice;
@@ -850,7 +880,12 @@
     // ===== RESTART =====
     function restartApp() {
         state.speechSynthesis.cancel();
+        celebrationImagePromise = null;
         showScreen("start");
+        // Keep name filled in so they don't have to re-type
+        if (state.playerName && els.playerNameInput) {
+            els.playerNameInput.value = state.playerName;
+        }
     }
 
     // ===== HELPERS =====

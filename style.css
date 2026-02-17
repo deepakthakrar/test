@@ -131,6 +131,43 @@ body {
     font-weight: 600;
 }
 
+.name-input-group {
+    margin-bottom: 20px;
+}
+
+.name-label {
+    display: block;
+    font-size: 1.1rem;
+    color: var(--purple);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.name-input {
+    font-size: 1.3rem;
+    padding: 12px 20px;
+    border-radius: 30px;
+    border: 3px solid var(--saffron);
+    outline: none;
+    text-align: center;
+    font-weight: 600;
+    color: var(--orange);
+    background: rgba(255, 255, 255, 0.9);
+    width: 80%;
+    max-width: 280px;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.name-input:focus {
+    border-color: var(--orange);
+    box-shadow: 0 0 12px rgba(255, 107, 53, 0.3);
+}
+
+.name-input::placeholder {
+    color: #ccc;
+    font-weight: 400;
+}
+
 .character-container {
     margin: 20px 0;
 }

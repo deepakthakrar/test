@@ -17,6 +17,10 @@
         <div class="start-content">
             <h1>Hanuman Chalisa</h1>
             <p class="subtitle">Learn to Sing with Hanuman Ji!</p>
+            <div class="name-input-group">
+                <label for="player-name" class="name-label">What's your name?</label>
+                <input type="text" id="player-name" class="name-input" placeholder="Type your name here" maxlength="20" autocomplete="off">
+            </div>
             <button id="start-btn" class="big-btn pulse-btn">
                 Let's Start Singing!
             </button>
@@ -106,7 +110,7 @@
     <div id="celebration-screen" class="screen">
         <div class="celebration-content">
             <div class="confetti-container" id="confetti-container"></div>
-            <h1 class="celebration-title">Amazing Job!</h1>
+            <h1 class="celebration-title" id="celebration-title">Amazing Job!</h1>
             <div class="ai-hanuman-container" id="celebration-image-wrapper">
                 <img id="celebration-hanuman-image" class="ai-hanuman-image" src="" alt="Lord Hanuman">
                 <div class="image-loading" id="celebration-image-loading">
@@ -114,7 +118,7 @@
                     <p class="loading-text">Divine art loading...</p>
                 </div>
             </div>
-            <p class="celebration-text">You sang the Hanuman Chalisa!</p>
+            <p class="celebration-text" id="celebration-text">You sang the Hanuman Chalisa!</p>
             <p class="celebration-stars">
                 You earned <span id="final-stars">0</span> stars!
             </p>
