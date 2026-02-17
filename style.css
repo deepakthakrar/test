@@ -260,6 +260,8 @@ header {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    flex: 1;
+    position: relative;
 }
 
 /* ===== GUIDE CHARACTER ===== */
@@ -291,6 +293,7 @@ header {
     position: relative;
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     max-width: 300px;
+    min-height: 48px;
     font-size: 0.95rem;
     color: #555;
 }
@@ -407,7 +410,8 @@ header {
     display: flex;
     justify-content: center;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
 }
 
 .control-btn {
@@ -440,7 +444,7 @@ header {
 }
 
 .btn-label {
-    font-size: 0.75rem;
+    font-size: 0.9rem;
 }
 
 .listen-btn {
@@ -492,10 +496,15 @@ header {
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    padding: 20px;
+    padding: 16px;
     background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 70px;
+    z-index: 10;
 }
 
 .recording-indicator.active {
@@ -536,15 +545,20 @@ header {
 
 /* ===== FEEDBACK AREA ===== */
 .feedback-area {
-    display: none;
     text-align: center;
-    padding: 16px;
+    padding: 0 16px;
     border-radius: var(--radius);
-    animation: slide-up 0.3s ease;
+    min-height: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
 }
 
 .feedback-area.visible {
-    display: block;
+    padding: 16px;
+    min-height: 48px;
+    max-height: 80px;
+    animation: slide-up 0.3s ease;
 }
 
 .feedback-area.great {
@@ -574,6 +588,8 @@ header {
     display: flex;
     justify-content: space-between;
     gap: 15px;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .nav-btn {

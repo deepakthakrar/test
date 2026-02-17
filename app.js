@@ -682,6 +682,12 @@
 
     // ===== NAVIGATION =====
     function goToNextVerse() {
+        // Award a star if user listened to this verse and it wasn't already completed
+        if (state.hasListened && !state.versesCompleted.has(state.currentVerse)) {
+            awardStar();
+            markVerseCompleted();
+        }
+
         if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
             state.speechSynthesis.cancel();
             loadVerse(state.currentVerse + 1);
