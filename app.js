@@ -20,7 +20,6 @@
         audioChunks: [],
         recordedAudioURL: null,
         audioStream: null,
-        blessingCount: 0,         // tracks how many blessing screens shown
     };
 
     // ===== IMAGE CACHE =====
@@ -36,7 +35,6 @@
     const screens = {
         start: $("start-screen"),
         learn: $("learn-screen"),
-        blessing: $("blessing-screen"),
         celebration: $("celebration-screen"),
     };
     const els = {
@@ -70,9 +68,8 @@
         finalStars: $("final-stars"),
         audioPermission: $("audio-permission"),
         playbackBtn: $("playback-btn"),
-        aiHanumanImage: $("ai-hanuman-image"),
-        blessingMessage: $("blessing-message"),
-        newsContext: $("news-context"),
+        startHanumanImage: $("start-hanuman-image"),
+        celebrationHanumanImage: $("celebration-hanuman-image"),
     };
 
     // ===== INITIALIZATION =====
@@ -80,6 +77,7 @@
         setupSpeechSynthesis();
         setupSpeechRecognition();
         bindEvents();
+        loadStartImage();
     }
 
     function setupSpeechSynthesis() {
@@ -131,9 +129,6 @@
         els.restartBtn.addEventListener("click", restartApp);
         if (els.playbackBtn) {
             els.playbackBtn.addEventListener("click", playbackRecording);
-        }
-        if (els.continueBtn) {
-            els.continueBtn.addEventListener("click", continueFromBlessing);
         }
         if (els.enableAudioBtn) {
             els.enableAudioBtn.addEventListener("click", () => {
@@ -686,13 +681,7 @@
     function goToNextVerse() {
         if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
             state.speechSynthesis.cancel();
-            const nextVerse = state.currentVerse + 1;
-            // Show divine blessing every 7 verses
-            if (nextVerse > 0 && nextVerse % 7 === 0) {
-                showDivineBlessing(nextVerse);
-            } else {
-                loadVerse(nextVerse);
-            }
+            loadVerse(state.currentVerse + 1);
         } else {
             showCelebration();
         }
@@ -722,137 +711,12 @@
             : "Next ▶";
     }
 
-    // ===== DIVINE BLESSING SCREEN =====
-    async function showDivineBlessing(nextVerseIndex) {
-        showScreen("blessing");
-
-        // Reset image state
-        const loadingEl = document.querySelector(".image-loading");
-        if (loadingEl) loadingEl.classList.remove("hidden");
-        if (els.aiHanumanImage) {
-            els.aiHanumanImage.classList.remove("loaded");
-            els.aiHanumanImage.src = "";
-        }
-
-        // Store the next verse to load after blessing
-        state._nextVerseAfterBlessing = nextVerseIndex;
-
-        // Speak blessing
-        const blessingText = "Divine blessings from Lord Hanuman! You are doing wonderfully!";
-        const utterance = new SpeechSynthesisUtterance(blessingText);
-        utterance.rate = 0.85;
-        utterance.pitch = 1.1;
-        if (state.englishVoice) utterance.voice = state.englishVoice;
-        state.speechSynthesis.speak(utterance);
-
-        // Get AI-generated divine image
-        try {
-            const imageData = await generateDivineImage();
-
-            const titleEl = document.querySelector(".blessing-title");
-            if (titleEl) titleEl.textContent = `${imageData.character} Blesses You \u{1F64F}`;
-
-            if (els.blessingMessage) {
-                els.blessingMessage.textContent = imageData.message;
-            }
-            if (els.newsContext) {
-                els.newsContext.textContent = imageData.context;
-            }
-
-            if (els.aiHanumanImage) {
-                els.aiHanumanImage.onload = () => {
-                    if (loadingEl) loadingEl.classList.add("hidden");
-                    els.aiHanumanImage.classList.add("loaded");
-                };
-                els.aiHanumanImage.onerror = () => {
-                    if (loadingEl) loadingEl.classList.add("hidden");
-                };
-                els.aiHanumanImage.src = imageData.imageUrl;
-            }
-
-        } catch (error) {
-            console.error("Error generating divine image:", error);
-            if (loadingEl) loadingEl.classList.add("hidden");
-            // Show error on screen so it's visible
-            if (els.blessingMessage) {
-                els.blessingMessage.textContent = "Image could not load: " + error.message;
-            }
-        }
-
-        createDivineParticles();
-    }
-
-    function continueFromBlessing() {
-        const nextVerse = state._nextVerseAfterBlessing;
-        if (nextVerse !== undefined && nextVerse < HANUMAN_CHALISA.length) {
-            loadVerse(nextVerse);
-            showScreen("learn");
-        } else {
-            showCelebration();
-        }
-    }
-
-    // Divine character rotation: Hanuman → Ram → Sita → Hanuman...
-    const DIVINE_CHARACTERS = [
-        {
-            name: "Lord Hanuman",
-            messages: [
-                "Lord Hanuman watches over you with boundless love \u{1F64F}",
-                "Hanuman ji fills your heart with strength and courage \u2728",
-                "Jai Hanuman! Your devotion brings divine blessings \u{1F31F}",
-            ],
-            prompts: [
-                "Lord Hanuman, divine Hindu deity, sitting in meditation on lotus flower, golden divine light rays, intricate ornate temple background, sacred saffron colors, majestic and serene, high detail digital art, spiritual illustration",
-                "Mighty Lord Hanuman flying through clouds carrying mountain, divine warrior, glowing aura, sacred hindu art, gold and saffron colors, peaceful expression, children friendly spiritual art",
-                "Lord Hanuman with folded hands in devotion, chest open showing Ram and Sita inside heart, divine golden glow, lotus flowers, sacred temple setting, warm spiritual colors",
-            ]
-        },
-        {
-            name: "Lord Ram",
-            messages: [
-                "Lord Ram blesses you with wisdom and righteousness \u{1F64F}",
-                "Sri Ram's divine grace shines upon your journey \u2728",
-                "Jai Shri Ram! May truth and courage guide your path \u{1F31F}",
-            ],
-            prompts: [
-                "Lord Ram, noble Hindu deity, standing with bow and arrow, wearing golden crown and silk garments, divine radiance, lotus flowers, sacred saffron and gold colors, serene majestic expression, children friendly spiritual art",
-                "Lord Shri Ram seated on golden throne, divine king, lotus flowers, golden ornaments, peaceful gentle expression, warm sacred light, ancient india, spiritual illustration for children",
-                "Lord Ram and divine light, sacred blue skin, gentle noble face, golden crown, colorful flowers, temple background, spiritual aura, soft warm colors, peaceful devotional art",
-            ]
-        },
-        {
-            name: "Mother Sita",
-            messages: [
-                "Mother Sita's grace and love surround you always \u{1F64F}",
-                "Sita Mata blesses your devotion with pure love \u2728",
-                "The divine mother smiles upon your sacred learning \u{1F31F}",
-            ],
-            prompts: [
-                "Goddess Sita, graceful Hindu deity, wearing beautiful sari, flower garland, gentle loving expression, golden divine glow, lotus flowers, sacred temple, warm saffron colors, spiritual children illustration",
-                "Mother Sita seated gracefully, sacred Hindu goddess, soft divine light, colorful flowers, golden ornaments, peaceful serene face, ancient india setting, devotional spiritual art",
-                "Goddess Sita standing in garden of flowers, divine radiance, wearing red and gold sari, lotus in hand, gentle smile, sacred aura, warm golden light, beautiful spiritual illustration",
-            ]
-        }
-    ];
-
-    async function generateDivineImage() {
-        state.blessingCount++;
-        const charIndex = (state.blessingCount - 1) % DIVINE_CHARACTERS.length;
-        const character = DIVINE_CHARACTERS[charIndex];
-        const prompt = randomFrom(character.prompts);
-
-        // Return cached image if we already generated this prompt
+    // ===== FAL.AI IMAGE GENERATION =====
+    async function generateHanumanImage(prompt) {
         if (imageCache.has(prompt)) {
-            const cachedUrl = imageCache.get(prompt);
-            return {
-                imageUrl: cachedUrl,
-                character: character.name,
-                message: randomFrom(character.messages),
-                context: buildContext(character.name),
-            };
+            return imageCache.get(prompt);
         }
 
-        // Call fal.ai Flux Pro
         const response = await fetch(FAL_ENDPOINT, {
             method: "POST",
             headers: {
@@ -874,7 +738,7 @@
         let data = await response.json();
         console.log("fal.ai raw response:", JSON.stringify(data));
 
-        // fal.ai Flux Pro can return a queue/status response — poll until done
+        // Handle async queue responses
         if (data.status === "IN_QUEUE" || data.status === "IN_PROGRESS" || data.request_id) {
             const statusUrl = data.response_url || `https://queue.fal.run/fal-ai/flux-pro/requests/${data.request_id}`;
             for (let i = 0; i < 30; i++) {
@@ -891,52 +755,36 @@
         if (!data.images || !data.images[0]) {
             throw new Error("No image in response: " + JSON.stringify(data));
         }
+
         const imageUrl = data.images[0].url;
-
-        // Cache result for this session
         imageCache.set(prompt, imageUrl);
+        return imageUrl;
+    }
 
-        return {
-            imageUrl,
-            character: character.name,
-            message: randomFrom(character.messages),
-            context: buildContext(character.name),
+    function applyImageToElement(imgEl, loadingEl, url) {
+        imgEl.onload = () => {
+            if (loadingEl) loadingEl.classList.add("hidden");
+            imgEl.classList.add("loaded");
         };
+        imgEl.onerror = () => {
+            if (loadingEl) loadingEl.classList.add("hidden");
+        };
+        imgEl.src = url;
     }
 
-    function buildContext(characterName) {
-        const todayDate = new Date().toLocaleDateString("en-IN", {
-            weekday: "long",
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-        });
-        const contexts = [
-            `A unique divine vision just for you on ${todayDate}`,
-            `${characterName} appears uniquely for you today`,
-            `A sacred vision on this blessed day \u2014 ${todayDate}`,
-        ];
-        return randomFrom(contexts);
-    }
+    async function loadStartImage() {
+        const loadingEl = document.getElementById("start-image-loading");
+        const img = els.startHanumanImage;
+        if (!img) return;
 
-    function createDivineParticles() {
-        const colors = ["#FFD700", "#FFA500", "#FF8C42", "#FFE5B4"];
-        const container = document.querySelector(".blessing-screen-content");
-        if (!container) return;
+        const prompt = "Lord Hanuman, majestic divine Hindu deity, sitting in meditation, golden divine light rays, intricate ornate temple background, sacred saffron and gold colors, lotus flowers, children friendly spiritual art, vibrant colors, high detail";
 
-        for (let i = 0; i < 20; i++) {
-            setTimeout(() => {
-                const particle = document.createElement("div");
-                particle.style.cssText = `
-                    position:absolute; width:6px; height:6px; border-radius:50%;
-                    background-color:${randomFrom(colors)};
-                    left:${Math.random() * 100}%; top:${Math.random() * 100}%;
-                    opacity:0.8; pointer-events:none;
-                    animation:divine-particle ${2 + Math.random() * 2}s ease-out forwards;
-                `;
-                container.appendChild(particle);
-                setTimeout(() => particle.remove(), 4000);
-            }, i * 60);
+        try {
+            const url = await generateHanumanImage(prompt);
+            applyImageToElement(img, loadingEl, url);
+        } catch (error) {
+            console.error("Start image error:", error);
+            if (loadingEl) loadingEl.classList.add("hidden");
         }
     }
 
@@ -946,6 +794,14 @@
         els.finalStars.textContent = state.stars;
         createConfetti();
 
+        // Reset celebration image
+        const loadingEl = document.getElementById("celebration-image-loading");
+        if (loadingEl) loadingEl.classList.remove("hidden");
+        if (els.celebrationHanumanImage) {
+            els.celebrationHanumanImage.classList.remove("loaded");
+            els.celebrationHanumanImage.src = "";
+        }
+
         // Speak congratulation
         const congrats = new SpeechSynthesisUtterance(
             "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!"
@@ -954,6 +810,15 @@
         congrats.pitch = 1.2;
         if (state.englishVoice) congrats.voice = state.englishVoice;
         state.speechSynthesis.speak(congrats);
+
+        // Generate unique celebration image
+        const prompt = "Lord Hanuman joyfully celebrating victory, arms raised in triumph, divine golden light, colorful flowers raining down, sacred saffron colors, warm jubilant energy, children friendly spiritual illustration, vibrant festive art";
+        generateHanumanImage(prompt).then(url => {
+            applyImageToElement(els.celebrationHanumanImage, loadingEl, url);
+        }).catch(err => {
+            console.error("Celebration image error:", err);
+            if (loadingEl) loadingEl.classList.add("hidden");
+        });
     }
 
     function createConfetti() {
