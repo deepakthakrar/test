@@ -1,155 +1,252 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Chalisa Kids">
-    <meta name="theme-color" content="#FF9933">
+    <meta name="apple-mobile-web-app-title" content="Math Buddy">
+    <meta name="theme-color" content="#4A90D9">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icons/icon.svg">
-    <title>Hanuman Chalisa - Learn & Sing!</title>
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Math Buddy - Your Child's Math Tutor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Start Screen -->
-    <div id="start-screen" class="screen active">
-        <div class="clouds">
-            <div class="cloud cloud-1"></div>
-            <div class="cloud cloud-2"></div>
-            <div class="cloud cloud-3"></div>
+
+    <!-- ========== SCREEN 1: WELCOME / REGISTRATION ========== -->
+    <div id="screen-register" class="screen active">
+        <div class="floating-nums">
+            <span class="float-num n1">1</span>
+            <span class="float-num n2">2</span>
+            <span class="float-num n3">3</span>
+            <span class="float-num n4">+</span>
+            <span class="float-num n5">5</span>
+            <span class="float-num n6">=</span>
+            <span class="float-num n7">7</span>
+            <span class="float-num n8">4</span>
         </div>
-        <div class="start-content">
-            <h1>Hanuman Chalisa</h1>
-            <p class="subtitle">Learn to Sing with Hanuman Ji!</p>
-            <div class="name-input-group">
-                <label for="player-name" class="name-label">What's your name?</label>
-                <input type="text" id="player-name" class="name-input" placeholder="Type your name here" maxlength="20" autocomplete="off">
+        <div class="register-content">
+            <div class="app-logo">
+                <div class="logo-circle">
+                    <span class="logo-icon">+</span>
+                </div>
+                <h1 class="app-title">Math Buddy</h1>
+                <p class="app-subtitle">Fun math lessons for little learners!</p>
             </div>
-            <button id="start-btn" class="big-btn pulse-btn">
-                Let's Start Singing!
-            </button>
-            <p class="hint-text">Ask a grown-up to help you get started!</p>
+
+            <form id="register-form" class="register-form" autocomplete="off">
+                <div class="form-group">
+                    <label for="input-name">Your Name</label>
+                    <input type="text" id="input-name" placeholder="e.g. Sarah" required maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="input-email">Email</label>
+                    <input type="email" id="input-email" placeholder="parent@email.com" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="input-phone">Phone Number</label>
+                    <input type="tel" id="input-phone" placeholder="(555) 123-4567" required maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="input-child-name">Child's Name</label>
+                    <input type="text" id="input-child-name" placeholder="e.g. Emma" required maxlength="50">
+                </div>
+                <button type="submit" class="btn-primary btn-lg" id="btn-register">
+                    Get Started - It's Free!
+                </button>
+                <p class="form-hint">7 minutes of free tutoring included</p>
+            </form>
         </div>
     </div>
 
-    <!-- Main Learning Screen -->
-    <div id="learn-screen" class="screen">
-        <header>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar"></div>
-                <span class="progress-text" id="progress-text">Verse 1 of 42</span>
+    <!-- ========== SCREEN 2: DASHBOARD ========== -->
+    <div id="screen-dashboard" class="screen">
+        <div class="dashboard-content">
+            <div class="dashboard-header">
+                <div class="child-greeting">
+                    <span class="wave-emoji">Hi</span>
+                    <h2>Hello, <span id="dash-child-name">Emma</span>!</h2>
+                </div>
+                <button id="btn-settings" class="btn-icon" aria-label="Settings">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                </button>
             </div>
-            <div class="stars-earned" id="stars-earned">
-                <span class="star-icon">Stars:</span>
-                <span id="star-count">0</span>
-            </div>
-        </header>
 
-        <main>
-            <!-- Character Guide -->
-            <div class="guide-section">
-                <div class="guide-character" id="guide-character">
-                    <div class="speech-bubble" id="speech-bubble">
-                        <p id="guide-message">Let's learn together! Listen first, then you try!</p>
+            <!-- Time Remaining Card -->
+            <div class="time-card">
+                <div class="time-ring">
+                    <svg class="time-ring-svg" viewBox="0 0 120 120">
+                        <circle class="time-ring-bg" cx="60" cy="60" r="52"/>
+                        <circle class="time-ring-fill" id="time-ring-fill" cx="60" cy="60" r="52"/>
+                    </svg>
+                    <div class="time-ring-text">
+                        <span class="time-value" id="dash-time-remaining">7:00</span>
+                        <span class="time-label">remaining</span>
                     </div>
-                    <div class="monkey-guide"></div>
+                </div>
+                <div class="time-info">
+                    <p id="dash-plan-label" class="plan-label">Free Trial</p>
+                    <p id="dash-plan-detail" class="plan-detail">7 minutes of math fun</p>
                 </div>
             </div>
 
-            <!-- Verse Display -->
-            <div class="verse-card" id="verse-card">
-                <div class="verse-number" id="verse-number">Doha</div>
-                <div class="verse-lines">
-                    <p class="verse-line hindi" id="verse-hindi"></p>
-                    <p class="verse-line transliteration" id="verse-translit"></p>
-                    <p class="verse-line meaning" id="verse-meaning"></p>
-                </div>
-                <div class="highlight-word" id="highlight-word"></div>
-            </div>
-
-            <!-- Controls -->
-            <div class="controls">
-                <button id="listen-btn" class="control-btn listen-btn" title="Listen">
-                    <span class="btn-label">Listen</span>
-                </button>
-                <button id="listen-slow-btn" class="control-btn slow-btn" title="Listen Slowly">
-                    <span class="btn-label">Slow</span>
-                </button>
-                <button id="my-turn-btn" class="control-btn sing-btn" title="My Turn!">
-                    <span class="btn-label">My Turn!</span>
-                </button>
-                <button id="playback-btn" class="control-btn playback-btn" title="Listen to My Recording" style="display:none;">
-                    <span class="btn-label">Hear Me!</span>
-                </button>
-                <button id="skip-btn" class="control-btn skip-btn" title="Skip">
-                    <span class="btn-label">Next</span>
-                </button>
-            </div>
-
-            <!-- Recording Indicator -->
-            <div class="recording-indicator" id="recording-indicator">
-                <div class="mic-pulse"></div>
-                <span class="recording-text">Listening to you sing...</span>
-                <button id="stop-recording-btn" class="stop-btn">Done!</button>
-            </div>
-
-            <!-- Feedback Area -->
-            <div class="feedback-area" id="feedback-area">
-                <div class="feedback-content" id="feedback-content"></div>
-            </div>
-
-            <!-- Navigation -->
-            <div class="navigation">
-                <button id="prev-btn" class="nav-btn" disabled>
-                    Back
-                </button>
-                <button id="next-btn" class="nav-btn">
-                    Next
-                </button>
-            </div>
-        </main>
-    </div>
-
-    <!-- Celebration Screen -->
-    <div id="celebration-screen" class="screen">
-        <div class="celebration-content">
-            <div class="confetti-container" id="confetti-container"></div>
-            <h1 class="celebration-title" id="celebration-title">Amazing Job!</h1>
-            <div class="ai-hanuman-container" id="celebration-image-wrapper">
-                <img id="celebration-hanuman-image" class="ai-hanuman-image" src="" alt="Lord Hanuman">
-                <div class="image-loading" id="celebration-image-loading">
-                    <div class="lotus-loader"></div>
-                    <p class="loading-text">Divine art loading...</p>
-                </div>
-            </div>
-            <p class="celebration-text" id="celebration-text">You sang the Hanuman Chalisa!</p>
-            <p class="celebration-stars">
-                You earned <span id="final-stars">0</span> stars!
-            </p>
-            <button id="restart-btn" class="big-btn pulse-btn">
-                Sing Again!
+            <!-- Start Session Button -->
+            <button id="btn-start-session" class="btn-primary btn-xl pulse-btn">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                Start Math Session
             </button>
+
+            <div class="session-tips">
+                <h3>Today's Topics</h3>
+                <div class="tip-chips">
+                    <span class="chip">Counting</span>
+                    <span class="chip">Adding</span>
+                    <span class="chip">Shapes</span>
+                    <span class="chip">Patterns</span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Audio Context Unlock (needed for iOS/mobile) -->
-    <div id="audio-permission" class="modal" style="display:none;">
+    <!-- ========== SCREEN 3: ACTIVE SESSION ========== -->
+    <div id="screen-session" class="screen">
+        <div class="session-header">
+            <button id="btn-end-session" class="btn-icon btn-back" aria-label="End Session">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            </button>
+            <div class="session-timer">
+                <div class="timer-dot" id="timer-dot"></div>
+                <span id="session-timer-display">7:00</span>
+            </div>
+            <div class="session-child-name" id="session-child-label"></div>
+        </div>
+
+        <div class="session-body">
+            <!-- ElevenLabs agent container -->
+            <div class="agent-container" id="agent-container">
+                <div class="agent-avatar">
+                    <div class="avatar-circle" id="avatar-circle">
+                        <span class="avatar-icon" id="avatar-icon">+</span>
+                    </div>
+                    <div class="avatar-pulse" id="avatar-pulse"></div>
+                </div>
+                <p class="agent-status" id="agent-status">Tap the button below to start talking!</p>
+                <div class="agent-transcript" id="agent-transcript"></div>
+            </div>
+
+            <!-- ElevenLabs widget will be injected here -->
+            <div id="elevenlabs-widget-container"></div>
+        </div>
+
+        <div class="session-footer">
+            <div class="mic-button-wrap">
+                <button id="btn-mic" class="btn-mic" aria-label="Talk to Math Buddy">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== SCREEN 4: PAYWALL ========== -->
+    <div id="screen-paywall" class="screen">
+        <div class="paywall-content">
+            <div class="paywall-icon">
+                <div class="clock-icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#4A90D9" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+            </div>
+            <h2 class="paywall-title">Great Learning Session!</h2>
+            <p class="paywall-subtitle" id="paywall-child-msg">Emma used all the free minutes.</p>
+            <p class="paywall-desc">Unlock more math fun for your child with our weekly plan.</p>
+
+            <div class="plan-card">
+                <div class="plan-badge">Most Popular</div>
+                <h3 class="plan-price">$9.99<span>/week</span></h3>
+                <ul class="plan-features">
+                    <li>60 minutes of talk time per week</li>
+                    <li>Personalized math lessons</li>
+                    <li>Covers counting, addition, subtraction, shapes & more</li>
+                    <li>Patient, encouraging AI tutor</li>
+                    <li>Cancel anytime</li>
+                </ul>
+                <button id="btn-subscribe" class="btn-primary btn-lg">
+                    Subscribe - $9.99/week
+                </button>
+                <p class="plan-legal">Subscription renews weekly. Cancel anytime in Settings.</p>
+            </div>
+
+            <button id="btn-paywall-back" class="btn-text">Maybe Later</button>
+        </div>
+    </div>
+
+    <!-- ========== SCREEN 5: SETTINGS ========== -->
+    <div id="screen-settings" class="screen">
+        <div class="settings-content">
+            <div class="settings-header">
+                <button id="btn-settings-back" class="btn-icon btn-back" aria-label="Back">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <h2>Settings</h2>
+            </div>
+
+            <div class="settings-section">
+                <h3>Account</h3>
+                <div class="settings-field">
+                    <span class="settings-label">Name</span>
+                    <span class="settings-value" id="settings-name">-</span>
+                </div>
+                <div class="settings-field">
+                    <span class="settings-label">Email</span>
+                    <span class="settings-value" id="settings-email">-</span>
+                </div>
+                <div class="settings-field">
+                    <span class="settings-label">Phone</span>
+                    <span class="settings-value" id="settings-phone">-</span>
+                </div>
+                <div class="settings-field">
+                    <span class="settings-label">Child's Name</span>
+                    <span class="settings-value" id="settings-child">-</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h3>Subscription</h3>
+                <div class="settings-field">
+                    <span class="settings-label">Plan</span>
+                    <span class="settings-value" id="settings-plan">Free Trial</span>
+                </div>
+                <div class="settings-field">
+                    <span class="settings-label">Time Used</span>
+                    <span class="settings-value" id="settings-time-used">0:00</span>
+                </div>
+                <div class="settings-field">
+                    <span class="settings-label">Time Remaining</span>
+                    <span class="settings-value" id="settings-time-remaining">7:00</span>
+                </div>
+            </div>
+
+            <button id="btn-upgrade" class="btn-primary btn-lg">Upgrade Plan</button>
+            <button id="btn-logout" class="btn-danger">Sign Out</button>
+        </div>
+    </div>
+
+    <!-- ========== TIME'S UP MODAL ========== -->
+    <div id="modal-times-up" class="modal" style="display:none;">
         <div class="modal-content">
-            <h2>Enable Sound</h2>
-            <p>Tap the button so you can hear the verses!</p>
-            <button id="enable-audio-btn" class="big-btn">Enable Sound</button>
+            <div class="modal-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#FF6B6B" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h2>Time's Up!</h2>
+            <p id="modal-times-up-msg">Your free minutes are all used up.</p>
+            <button id="btn-modal-upgrade" class="btn-primary btn-lg">Get More Time</button>
+            <button id="btn-modal-dismiss" class="btn-text">Back to Home</button>
         </div>
     </div>
 
-    <script src="verses.js"></script>
+    <!-- ElevenLabs Conversational AI Widget (CDN) -->
+    <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
+
     <script src="app.js"></script>
-    <script>
-        // Register service worker for PWA/offline support
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
-        }
-    </script>
 </body>
 </html>
