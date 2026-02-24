@@ -1,66 +1,49 @@
-# Hanuman Chalisa - Learn & Sing!
+# Math Buddy - AI Math Tutor for Kids
 
-An interactive web application to help learn and sing the Hanuman Chalisa.
+An iPhone app that provides a voice-based AI math tutor for 5-year-olds, powered by ElevenLabs Conversational AI.
 
 ## Features
 
-- 🎵 Listen to each verse
-- 🐢 Slow playback option for learning
-- 🎤 Practice singing with microphone support
-- ⭐ Track your progress with stars
-- 🎯 42 verses to master
+- Voice-based math tutoring via ElevenLabs AI agent
+- Registration flow (parent name, email, phone, child name)
+- 7 minutes of free tutoring
+- $9.99/week subscription for 60 minutes of talk time
+- Live session timer with countdown
+- Kid-friendly UI with animations
 
-## How to Run
+## Setup
 
-### Quick Start
+### 1. Create your ElevenLabs agent
 
-Run the following command in the project directory:
+1. Go to https://elevenlabs.io
+2. Create a new Conversational AI agent configured as a math tutor for 5-year-olds
+3. Copy the **Agent ID**
+4. Open `app.js` and replace `YOUR_AGENT_ID_HERE` with your Agent ID
+
+### 2. Run locally
 
 ```bash
 python3 -m http.server 8000
 ```
 
-Then open your browser and navigate to:
-```
-http://localhost:8000
-```
+Open http://localhost:8000 in your browser.
 
-### Alternative Methods
+### 3. Build for iOS
 
-**Using Python 2:**
+See [BUILD_IOS.md](BUILD_IOS.md) for full App Store deployment instructions.
+
 ```bash
-python -m SimpleHTTPServer 8000
-```
-
-**Using Node.js:**
-```bash
-npx http-server -p 8000
-```
-
-**Using PHP:**
-```bash
-php -S localhost:8000
+npm install
+npm run build
+npx cap add ios
+npx cap sync ios
+npx cap open ios
 ```
 
 ## Files
 
-- `index.html` - Main application page
-- `app.js` - Application logic
-- `style.css` - Styling
-- `verses.js` - Hanuman Chalisa verses data
-
-## Browser Requirements
-
-- Modern web browser (Chrome, Firefox, Safari, Edge)
-- Microphone access required for "My Turn!" singing feature
-- JavaScript must be enabled
-
-## Usage
-
-1. Click "Let's Start Singing!" to begin
-2. Use "Listen" to hear each verse
-3. Use "Slow" for slower playback while learning
-4. Click "My Turn!" to practice singing (requires microphone permission)
-5. Navigate through verses using the Next/Back buttons
-
-Enjoy learning the Hanuman Chalisa! 🙏
+- `index.html` - All app screens (registration, dashboard, session, paywall, settings)
+- `app.js` - Core logic (registration, usage tracking, timer, ElevenLabs integration)
+- `style.css` - Kid-friendly blue/purple theme
+- `capacitor.config.ts` - iOS app configuration
+- `BUILD_IOS.md` - Full build and deployment guide

@@ -1,15 +1,15 @@
 {
-  "name": "hanuman-chalisa-kids",
+  "name": "math-buddy",
   "version": "1.0.0",
-  "description": "An interactive app to help kids learn and sing the Hanuman Chalisa.",
+  "description": "AI-powered math tutor for 5-year-olds, using ElevenLabs Conversational AI.",
   "main": "app.js",
   "scripts": {
-    "build": "mkdir -p www && cp index.html style.css app.js verses.js manifest.json sw.js www/ && cp -r icons www/ 2>/dev/null || true",
+    "build": "mkdir -p www && cp index.html style.css app.js manifest.json sw.js www/ && cp -r icons www/ 2>/dev/null || true",
     "cap:init": "npx cap add ios",
     "cap:sync": "npm run build && npx cap sync ios",
     "cap:open": "npx cap open ios"
   },
-  "keywords": ["hanuman-chalisa", "kids", "learning", "singing"],
+  "keywords": ["math", "tutor", "kids", "ai", "elevenlabs"],
   "author": "",
   "license": "ISC",
   "dependencies": {

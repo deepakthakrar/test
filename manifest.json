@@ -1,12 +1,12 @@
 {
-  "name": "Hanuman Chalisa Kids",
-  "short_name": "Chalisa Kids",
-  "description": "Learn and sing the Hanuman Chalisa!",
+  "name": "Math Buddy",
+  "short_name": "Math Buddy",
+  "description": "AI math tutor for kids - fun, interactive math lessons!",
   "start_url": "/index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#FFF3E0",
-  "theme_color": "#FF9933",
+  "background_color": "#F0F7FF",
+  "theme_color": "#4A90D9",
   "icons": [
     {
       "src": "icons/icon-192.png",

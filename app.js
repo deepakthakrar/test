@@ -1,938 +1,583 @@
-// ===== Hanuman Chalisa Kids App - Main Logic =====
+// ===== Math Buddy - AI Math Tutor for Kids =====
+// Integrates with ElevenLabs Conversational AI Agent
 
 (function () {
     "use strict";
 
-    // ===== STATE =====
-    const state = {
-        currentVerse: 0,
-        stars: 0,
-        isPlaying: false,
-        isRecording: false,
-        hasListened: false,       // child must listen before singing
-        attemptCount: 0,          // attempts on current verse
-        versesCompleted: new Set(),
-        speechSynthesis: window.speechSynthesis,
-        recognition: null,
-        hindiVoice: null,
-        englishVoice: null,
-        mediaRecorder: null,
-        audioChunks: [],
-        recordedAudioURL: null,
-        audioStream: null,
-        playerName: "",           // child's name for personalization
+    // ===== CONFIGURATION =====
+    const CONFIG = {
+        // >>> REPLACE WITH YOUR ELEVENLABS AGENT ID <<<
+        ELEVENLABS_AGENT_ID: "agent_9401kj56313ve9htt2wyn9revqkv",
+
+        // Free tier: 7 minutes (420 seconds)
+        FREE_TIER_SECONDS: 7 * 60,
+
+        // Paid tier: 60 minutes per week (3600 seconds)
+        PAID_TIER_SECONDS: 60 * 60,
+
+        // Subscription price
+        PRICE_PER_WEEK: 9.99,
+
+        // Local storage keys
+        STORAGE_KEY_USER: "mathbuddy_user",
+        STORAGE_KEY_USAGE: "mathbuddy_usage",
+        STORAGE_KEY_SUBSCRIPTION: "mathbuddy_subscription",
     };
 
-    // ===== IMAGE CACHE =====
-    // Keyed by prompt text to avoid regenerating the same image in a session
-    const imageCache = new Map();
-
-    // ===== FAL.AI CONFIG =====
-    const FAL_API_KEY = "00fde813-ff4a-4900-9209-5f57aa16d44c:ab5efb0a1449b20dadb915b6d5de3d61";
-    const FAL_ENDPOINT = "https://fal.run/fal-ai/flux-pro";
+    // ===== STATE =====
+    const state = {
+        user: null,           // { name, email, phone, childName }
+        usageSeconds: 0,      // total seconds used
+        isSubscribed: false,
+        subscriptionExpiry: null,
+        sessionActive: false,
+        sessionTimer: null,
+        sessionStartTime: null,
+        conversation: null,   // ElevenLabs conversation instance
+        widgetElement: null,  // ElevenLabs widget element
+    };
 
     // ===== DOM ELEMENTS =====
     const $ = (id) => document.getElementById(id);
     const screens = {
-        start: $("start-screen"),
-        learn: $("learn-screen"),
-        celebration: $("celebration-screen"),
+        register: $("screen-register"),
+        dashboard: $("screen-dashboard"),
+        session: $("screen-session"),
+        paywall: $("screen-paywall"),
+        settings: $("screen-settings"),
     };
+
     const els = {
-        startBtn: $("start-btn"),
-        listenBtn: $("listen-btn"),
-        listenSlowBtn: $("listen-slow-btn"),
-        myTurnBtn: $("my-turn-btn"),
-        skipBtn: $("skip-btn"),
-        stopRecordingBtn: $("stop-recording-btn"),
-        prevBtn: $("prev-btn"),
-        nextBtn: $("next-btn"),
-        restartBtn: $("restart-btn"),
-        continueBtn: $("continue-btn"),
-        enableAudioBtn: $("enable-audio-btn"),
-        progressBar: $("progress-bar"),
-        progressText: $("progress-text"),
-        starCount: $("star-count"),
-        starsEarned: $("stars-earned"),
-        guideMessage: $("guide-message"),
-        verseNumber: $("verse-number"),
-        verseHindi: $("verse-hindi"),
-        verseTranslit: $("verse-translit"),
-        verseMeaning: $("verse-meaning"),
-        verseCard: $("verse-card"),
-        highlightWord: $("highlight-word"),
-        recordingIndicator: $("recording-indicator"),
-        feedbackArea: $("feedback-area"),
-        feedbackContent: $("feedback-content"),
-        speechBubble: $("speech-bubble"),
-        confettiContainer: $("confetti-container"),
-        finalStars: $("final-stars"),
-        audioPermission: $("audio-permission"),
-        playbackBtn: $("playback-btn"),
-        celebrationHanumanImage: $("celebration-hanuman-image"),
-        playerNameInput: $("player-name"),
-        celebrationTitle: $("celebration-title"),
-        celebrationText: $("celebration-text"),
+        // Registration
+        registerForm: $("register-form"),
+        inputName: $("input-name"),
+        inputEmail: $("input-email"),
+        inputPhone: $("input-phone"),
+        inputChildName: $("input-child-name"),
+
+        // Dashboard
+        dashChildName: $("dash-child-name"),
+        dashTimeRemaining: $("dash-time-remaining"),
+        dashPlanLabel: $("dash-plan-label"),
+        dashPlanDetail: $("dash-plan-detail"),
+        timeRingFill: $("time-ring-fill"),
+        btnStartSession: $("btn-start-session"),
+        btnSettings: $("btn-settings"),
+
+        // Session
+        btnEndSession: $("btn-end-session"),
+        sessionTimerDisplay: $("session-timer-display"),
+        timerDot: $("timer-dot"),
+        sessionChildLabel: $("session-child-label"),
+        agentContainer: $("agent-container"),
+        avatarCircle: $("avatar-circle"),
+        avatarPulse: $("avatar-pulse"),
+        avatarIcon: $("avatar-icon"),
+        agentStatus: $("agent-status"),
+        agentTranscript: $("agent-transcript"),
+        widgetContainer: $("elevenlabs-widget-container"),
+        btnMic: $("btn-mic"),
+
+        // Paywall
+        paywallChildMsg: $("paywall-child-msg"),
+        btnSubscribe: $("btn-subscribe"),
+        btnPaywallBack: $("btn-paywall-back"),
+
+        // Settings
+        btnSettingsBack: $("btn-settings-back"),
+        settingsName: $("settings-name"),
+        settingsEmail: $("settings-email"),
+        settingsPhone: $("settings-phone"),
+        settingsChild: $("settings-child"),
+        settingsPlan: $("settings-plan"),
+        settingsTimeUsed: $("settings-time-used"),
+        settingsTimeRemaining: $("settings-time-remaining"),
+        btnUpgrade: $("btn-upgrade"),
+        btnLogout: $("btn-logout"),
+
+        // Modal
+        modalTimesUp: $("modal-times-up"),
+        modalTimesUpMsg: $("modal-times-up-msg"),
+        btnModalUpgrade: $("btn-modal-upgrade"),
+        btnModalDismiss: $("btn-modal-dismiss"),
     };
 
     // ===== INITIALIZATION =====
     function init() {
-        setupSpeechSynthesis();
-        setupSpeechRecognition();
+        loadUserData();
         bindEvents();
-    }
 
-    function setupSpeechSynthesis() {
-        // Load voices (may be async)
-        function loadVoices() {
-            const voices = state.speechSynthesis.getVoices();
-            // Try to find Hindi voice
-            state.hindiVoice = voices.find(v => v.lang.startsWith("hi")) || null;
-            // English voice for transliteration
-            state.englishVoice = voices.find(v => v.lang.startsWith("en") && v.name.includes("Female"))
-                || voices.find(v => v.lang.startsWith("en-IN"))
-                || voices.find(v => v.lang.startsWith("en"))
-                || null;
-        }
-        loadVoices();
-        if (state.speechSynthesis.onvoiceschanged !== undefined) {
-            state.speechSynthesis.onvoiceschanged = loadVoices;
+        if (state.user) {
+            showScreen("dashboard");
+            updateDashboard();
+        } else {
+            showScreen("register");
         }
     }
 
-    function setupSpeechRecognition() {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.warn("Speech recognition not supported");
-            return;
+    // ===== PERSISTENCE =====
+    function loadUserData() {
+        try {
+            const userData = localStorage.getItem(CONFIG.STORAGE_KEY_USER);
+            if (userData) {
+                state.user = JSON.parse(userData);
+            }
+
+            const usageData = localStorage.getItem(CONFIG.STORAGE_KEY_USAGE);
+            if (usageData) {
+                const usage = JSON.parse(usageData);
+                state.usageSeconds = usage.seconds || 0;
+
+                // Reset weekly usage if a new week has started
+                if (usage.weekStart) {
+                    const weekStart = new Date(usage.weekStart);
+                    const now = new Date();
+                    const daysSince = (now - weekStart) / (1000 * 60 * 60 * 24);
+                    if (daysSince >= 7) {
+                        state.usageSeconds = 0;
+                        saveUsageData();
+                    }
+                }
+            }
+
+            const subData = localStorage.getItem(CONFIG.STORAGE_KEY_SUBSCRIPTION);
+            if (subData) {
+                const sub = JSON.parse(subData);
+                state.isSubscribed = sub.active || false;
+                state.subscriptionExpiry = sub.expiry ? new Date(sub.expiry) : null;
+
+                // Check if subscription has expired
+                if (state.subscriptionExpiry && new Date() > state.subscriptionExpiry) {
+                    state.isSubscribed = false;
+                    state.subscriptionExpiry = null;
+                    saveSubscriptionData();
+                }
+            }
+        } catch (e) {
+            console.error("Error loading user data:", e);
+        }
+    }
+
+    function saveUserData() {
+        localStorage.setItem(CONFIG.STORAGE_KEY_USER, JSON.stringify(state.user));
+    }
+
+    function saveUsageData() {
+        const stored = localStorage.getItem(CONFIG.STORAGE_KEY_USAGE);
+        let weekStart;
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            weekStart = parsed.weekStart || new Date().toISOString();
+        } else {
+            weekStart = new Date().toISOString();
         }
 
-        state.recognition = new SpeechRecognition();
-        state.recognition.continuous = true;
-        state.recognition.interimResults = true;
-        // Try Hindi first, fallback to English
-        state.recognition.lang = "hi-IN";
+        localStorage.setItem(CONFIG.STORAGE_KEY_USAGE, JSON.stringify({
+            seconds: state.usageSeconds,
+            weekStart: weekStart,
+        }));
+    }
 
-        state.recognition.onresult = handleRecognitionResult;
-        state.recognition.onerror = handleRecognitionError;
-        state.recognition.onend = handleRecognitionEnd;
+    function saveSubscriptionData() {
+        localStorage.setItem(CONFIG.STORAGE_KEY_SUBSCRIPTION, JSON.stringify({
+            active: state.isSubscribed,
+            expiry: state.subscriptionExpiry ? state.subscriptionExpiry.toISOString() : null,
+        }));
     }
 
     // ===== EVENT BINDING =====
     function bindEvents() {
-        els.startBtn.addEventListener("click", startLearning);
-        els.listenBtn.addEventListener("click", () => speakVerse(1.0));
-        els.listenSlowBtn.addEventListener("click", () => speakVerse(0.6));
-        els.myTurnBtn.addEventListener("click", startRecording);
-        els.skipBtn.addEventListener("click", skipToNext);
-        els.stopRecordingBtn.addEventListener("click", stopRecording);
-        els.prevBtn.addEventListener("click", goToPrevVerse);
-        els.nextBtn.addEventListener("click", goToNextVerse);
-        els.restartBtn.addEventListener("click", restartApp);
-        if (els.playbackBtn) {
-            els.playbackBtn.addEventListener("click", playbackRecording);
-        }
-        if (els.enableAudioBtn) {
-            els.enableAudioBtn.addEventListener("click", () => {
-                // Unlock audio context for mobile
-                const utterance = new SpeechSynthesisUtterance(" ");
-                utterance.volume = 0;
-                state.speechSynthesis.speak(utterance);
-                els.audioPermission.style.display = "none";
-            });
-        }
+        // Registration
+        els.registerForm.addEventListener("submit", handleRegister);
+
+        // Dashboard
+        els.btnStartSession.addEventListener("click", startSession);
+        els.btnSettings.addEventListener("click", () => {
+            updateSettings();
+            showScreen("settings");
+        });
+
+        // Session
+        els.btnEndSession.addEventListener("click", endSession);
+        els.btnMic.addEventListener("click", toggleMic);
+
+        // Paywall
+        els.btnSubscribe.addEventListener("click", handleSubscribe);
+        els.btnPaywallBack.addEventListener("click", () => {
+            showScreen("dashboard");
+            updateDashboard();
+        });
+
+        // Settings
+        els.btnSettingsBack.addEventListener("click", () => {
+            showScreen("dashboard");
+            updateDashboard();
+        });
+        els.btnUpgrade.addEventListener("click", () => showScreen("paywall"));
+        els.btnLogout.addEventListener("click", handleLogout);
+
+        // Modal
+        els.btnModalUpgrade.addEventListener("click", () => {
+            els.modalTimesUp.style.display = "none";
+            showScreen("paywall");
+        });
+        els.btnModalDismiss.addEventListener("click", () => {
+            els.modalTimesUp.style.display = "none";
+            showScreen("dashboard");
+            updateDashboard();
+        });
     }
 
     // ===== SCREEN MANAGEMENT =====
     function showScreen(name) {
         Object.values(screens).forEach(s => s.classList.remove("active"));
-        screens[name].classList.add("active");
-    }
-
-    // ===== START LEARNING =====
-    function startLearning() {
-        // Capture the child's name
-        state.playerName = (els.playerNameInput.value || "").trim();
-
-        showScreen("learn");
-        state.currentVerse = 0;
-        state.stars = 0;
-        state.versesCompleted.clear();
-        updateStarDisplay();
-        loadVerse(0);
-
-        // Personalized welcome in the guide bubble
-        if (state.playerName) {
-            setGuideMessage(`Hi ${state.playerName}! Let's learn together! Press Listen first!`);
+        if (screens[name]) {
+            screens[name].classList.add("active");
         }
     }
 
-    // ===== VERSE LOADING =====
-    function loadVerse(index) {
-        if (index < 0 || index >= HANUMAN_CHALISA.length) return;
+    // ===== REGISTRATION =====
+    function handleRegister(e) {
+        e.preventDefault();
 
-        state.currentVerse = index;
-        state.hasListened = false;
-        state.attemptCount = 0;
-        state.isPlaying = false;
-        state.isRecording = false;
+        const name = els.inputName.value.trim();
+        const email = els.inputEmail.value.trim();
+        const phone = els.inputPhone.value.trim();
+        const childName = els.inputChildName.value.trim();
 
-        // Clear recording state
-        state.recordedAudioURL = null;
-        state.audioChunks = [];
+        if (!name || !email || !phone || !childName) return;
 
-        const verse = HANUMAN_CHALISA[index];
+        state.user = { name, email, phone, childName };
+        state.usageSeconds = 0;
 
-        // Update verse display
-        els.verseNumber.textContent = verse.section;
-        els.verseHindi.textContent = verse.hindi;
-        els.verseTranslit.textContent = verse.transliteration;
-        els.verseMeaning.textContent = verse.meaning;
+        saveUserData();
+        saveUsageData();
 
-        // Reset card state
-        els.verseCard.classList.remove("listening", "speaking", "success");
-        els.highlightWord.classList.remove("visible");
-        els.recordingIndicator.classList.remove("active");
-        hideFeedback();
-
-        // Hide playback button for new verse
-        if (els.playbackBtn) {
-            els.playbackBtn.style.display = "none";
-        }
-
-        // Pre-generate celebration image at verse 25 so it's ready by the end
-        if (index >= 25) {
-            preGenerateCelebrationImage();
-        }
-
-        // Update progress
-        updateProgress();
-        updateNavButtons();
-
-        // Guide message (personalized with name)
-        let msg = randomFrom(ENCOURAGE_MESSAGES.start);
-        if (state.playerName) {
-            msg = msg.replace("Let's", `${state.playerName}, let's`);
-        }
-        setGuideMessage(msg);
-
-        // Disable my-turn until they listen
-        els.myTurnBtn.disabled = true;
-        els.myTurnBtn.style.opacity = "0.5";
-
-        // Add karaoke-style words to transliteration
-        renderKaraokeWords();
-
-        // Animate card entry
-        els.verseCard.style.animation = "none";
-        els.verseCard.offsetHeight; // reflow
-        els.verseCard.style.animation = "slide-up 0.4s ease";
+        showScreen("dashboard");
+        updateDashboard();
     }
 
-    function renderKaraokeWords() {
-        const verse = HANUMAN_CHALISA[state.currentVerse];
-        const words = verse.transliteration.split(/\s+/);
-        els.verseTranslit.innerHTML = words
-            .map((w, i) => `<span class="word-span" data-idx="${i}">${w}</span>`)
-            .join(" ");
+    // ===== DASHBOARD =====
+    function updateDashboard() {
+        if (!state.user) return;
+
+        els.dashChildName.textContent = state.user.childName;
+
+        const maxSeconds = getTotalAllowedSeconds();
+        const remaining = Math.max(0, maxSeconds - state.usageSeconds);
+
+        els.dashTimeRemaining.textContent = formatTime(remaining);
+
+        // Update ring
+        const circumference = 326.73; // 2 * PI * 52
+        const fraction = remaining / maxSeconds;
+        const offset = circumference * (1 - fraction);
+        els.timeRingFill.style.strokeDashoffset = offset;
+
+        if (fraction < 0.2) {
+            els.timeRingFill.classList.add("low");
+        } else {
+            els.timeRingFill.classList.remove("low");
+        }
+
+        // Plan info
+        if (state.isSubscribed) {
+            els.dashPlanLabel.textContent = "Weekly Plan";
+            els.dashPlanDetail.textContent = "60 minutes of math fun per week";
+        } else {
+            els.dashPlanLabel.textContent = "Free Trial";
+            els.dashPlanDetail.textContent = "7 minutes of math fun";
+        }
+
+        // Disable start if no time left
+        els.btnStartSession.disabled = remaining <= 0;
     }
 
-    // ===== TEXT-TO-SPEECH =====
-    function speakVerse(rate) {
-        if (state.isPlaying) {
-            state.speechSynthesis.cancel();
-            state.isPlaying = false;
-            els.verseCard.classList.remove("speaking");
-            resetKaraokeWords();
+    function getTotalAllowedSeconds() {
+        return state.isSubscribed ? CONFIG.PAID_TIER_SECONDS : CONFIG.FREE_TIER_SECONDS;
+    }
+
+    // ===== SESSION MANAGEMENT =====
+    function startSession() {
+        const maxSeconds = getTotalAllowedSeconds();
+        const remaining = maxSeconds - state.usageSeconds;
+
+        if (remaining <= 0) {
+            showPaywall();
             return;
         }
 
-        const verse = HANUMAN_CHALISA[state.currentVerse];
+        state.sessionActive = true;
+        state.sessionStartTime = Date.now();
+        showScreen("session");
 
-        // Cancel any ongoing speech
-        state.speechSynthesis.cancel();
+        // Set child name in session header
+        els.sessionChildLabel.textContent = state.user.childName;
 
-        state.isPlaying = true;
-        els.verseCard.classList.add("speaking");
-        disableControls(true);
+        // Update timer display
+        updateSessionTimer();
 
-        // Speak only the original Hindi/Sanskrit text
-        const hindiUtterance = new SpeechSynthesisUtterance(verse.hindi);
-        hindiUtterance.rate = rate;
-        hindiUtterance.pitch = 1.1; // slightly higher for friendliness
-        hindiUtterance.volume = 1.0;
+        // Start the countdown timer
+        state.sessionTimer = setInterval(() => {
+            if (!state.sessionActive) return;
 
-        // Use Hindi voice if available
-        if (state.hindiVoice) {
-            hindiUtterance.voice = state.hindiVoice;
-        }
+            // Calculate elapsed time this session
+            const elapsed = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+            const totalUsed = state.usageSeconds + elapsed;
+            const maxSec = getTotalAllowedSeconds();
+            const remaining = Math.max(0, maxSec - totalUsed);
 
-        hindiUtterance.onend = () => {
-            state.isPlaying = false;
-            state.hasListened = true;
-            els.verseCard.classList.remove("speaking");
-            disableControls(false);
+            // Update timer display
+            els.sessionTimerDisplay.textContent = formatTime(remaining);
 
-            // Enable My Turn button
-            els.myTurnBtn.disabled = false;
-            els.myTurnBtn.style.opacity = "1";
-
-            setGuideMessage(state.playerName
-                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
-                : "Great listening! Now it's YOUR turn! Press My Turn!");
-
-            // Pulse the My Turn button
-            els.myTurnBtn.classList.add("pulse-btn");
-            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
-        };
-
-        hindiUtterance.onerror = () => {
-            state.isPlaying = false;
-            els.verseCard.classList.remove("speaking");
-            disableControls(false);
-            els.myTurnBtn.disabled = false;
-            els.myTurnBtn.style.opacity = "1";
-            state.hasListened = true;
-        };
-
-        state.speechSynthesis.speak(hindiUtterance);
-    }
-
-    function speakTransliteration(verse, rate) {
-        const utterance = new SpeechSynthesisUtterance(verse.speakText);
-        utterance.rate = rate;
-        utterance.pitch = 1.1;
-        utterance.volume = 1.0;
-
-        if (state.englishVoice) {
-            utterance.voice = state.englishVoice;
-        }
-
-        // Karaoke word highlighting
-        const words = verse.speakText.split(/\s+/);
-        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
-        let wordIndex = 0;
-
-        utterance.onboundary = (event) => {
-            if (event.name === "word" && wordIndex < wordSpans.length) {
-                // Remove previous highlights
-                wordSpans.forEach(s => s.classList.remove("active"));
-                wordSpans[wordIndex].classList.add("active");
-                if (wordIndex > 0) wordSpans[wordIndex - 1].classList.add("done");
-                wordIndex++;
+            // Low time warning (under 1 minute)
+            if (remaining < 60) {
+                els.timerDot.classList.add("low");
+            } else {
+                els.timerDot.classList.remove("low");
             }
-        };
 
-        utterance.onend = () => {
-            state.isPlaying = false;
-            state.hasListened = true;
-            els.verseCard.classList.remove("speaking");
-            disableControls(false);
+            // Time's up
+            if (remaining <= 0) {
+                endSession();
+                showTimesUpModal();
+            }
+        }, 1000);
 
-            // Enable My Turn button
-            els.myTurnBtn.disabled = false;
-            els.myTurnBtn.style.opacity = "1";
-
-            // Mark all words as done
-            wordSpans.forEach(s => {
-                s.classList.remove("active");
-                s.classList.add("done");
-            });
-
-            setGuideMessage(state.playerName
-                ? `Great listening, ${state.playerName}! Now it's YOUR turn! Press My Turn!`
-                : "Great listening! Now it's YOUR turn! Press My Turn!");
-
-            // Pulse the My Turn button
-            els.myTurnBtn.classList.add("pulse-btn");
-            setTimeout(() => els.myTurnBtn.classList.remove("pulse-btn"), 3000);
-        };
-
-        utterance.onerror = () => {
-            state.isPlaying = false;
-            els.verseCard.classList.remove("speaking");
-            disableControls(false);
-            els.myTurnBtn.disabled = false;
-            els.myTurnBtn.style.opacity = "1";
-            state.hasListened = true;
-        };
-
-        state.speechSynthesis.speak(utterance);
+        // Start ElevenLabs conversation
+        startElevenLabsConversation();
     }
 
-    function resetKaraokeWords() {
-        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
-        wordSpans.forEach(s => {
-            s.classList.remove("active", "done");
+    function endSession() {
+        if (!state.sessionActive) return;
+
+        state.sessionActive = false;
+
+        // Calculate and save elapsed time
+        if (state.sessionStartTime) {
+            const elapsed = Math.floor((Date.now() - state.sessionStartTime) / 1000);
+            state.usageSeconds += elapsed;
+            saveUsageData();
+        }
+
+        // Stop timer
+        if (state.sessionTimer) {
+            clearInterval(state.sessionTimer);
+            state.sessionTimer = null;
+        }
+
+        // Stop ElevenLabs conversation
+        stopElevenLabsConversation();
+
+        // Reset UI
+        els.avatarCircle.classList.remove("speaking");
+        els.avatarPulse.classList.remove("active");
+        els.btnMic.classList.remove("active");
+        els.agentTranscript.innerHTML = "";
+        els.agentStatus.textContent = "Tap the button below to start talking!";
+        els.timerDot.classList.remove("low");
+
+        showScreen("dashboard");
+        updateDashboard();
+    }
+
+    function updateSessionTimer() {
+        const maxSec = getTotalAllowedSeconds();
+        const remaining = Math.max(0, maxSec - state.usageSeconds);
+        els.sessionTimerDisplay.textContent = formatTime(remaining);
+    }
+
+    // ===== ELEVENLABS INTEGRATION =====
+    function startElevenLabsConversation() {
+        els.agentStatus.textContent = "Connecting to Math Buddy...";
+        els.avatarPulse.classList.add("active");
+
+        // Create the ElevenLabs convai widget element
+        if (state.widgetElement) {
+            state.widgetElement.remove();
+        }
+
+        state.widgetElement = document.createElement("elevenlabs-convai");
+        state.widgetElement.setAttribute("agent-id", CONFIG.ELEVENLABS_AGENT_ID);
+        els.widgetContainer.appendChild(state.widgetElement);
+
+        // Listen for widget events
+        setupWidgetEventListeners();
+
+        // Update status after a brief delay
+        setTimeout(() => {
+            if (state.sessionActive) {
+                els.agentStatus.textContent = "Math Buddy is ready! Start talking!";
+                els.avatarCircle.classList.add("speaking");
+            }
+        }, 2000);
+    }
+
+    function setupWidgetEventListeners() {
+        // The ElevenLabs widget dispatches custom events
+        // Listen for conversation events on the widget element
+        if (!state.widgetElement) return;
+
+        state.widgetElement.addEventListener("elevenlabs-convai:call", (event) => {
+            // Conversation is starting
+            els.agentStatus.textContent = "Math Buddy is listening...";
+            els.avatarPulse.classList.add("active");
         });
-    }
 
-    // ===== SPEECH RECOGNITION =====
-    async function startRecording() {
-        if (state.isRecording) return;
+        state.widgetElement.addEventListener("elevenlabs-convai:end", () => {
+            // Conversation ended
+            els.agentStatus.textContent = "Session ended";
+            els.avatarCircle.classList.remove("speaking");
+            els.avatarPulse.classList.remove("active");
+        });
 
-        // Hide playback button when starting new recording
-        if (els.playbackBtn) {
-            els.playbackBtn.style.display = "none";
-        }
-
-        // Clear previous recording
-        state.audioChunks = [];
-        state.recordedAudioURL = null;
-
-        // Request microphone access and start recording
-        try {
-            state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            // Start MediaRecorder for actual audio recording
-            state.mediaRecorder = new MediaRecorder(state.audioStream);
-
-            state.mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    state.audioChunks.push(event.data);
-                }
-            };
-
-            state.mediaRecorder.onstop = () => {
-                // Create audio blob and URL
-                const audioBlob = new Blob(state.audioChunks, { type: 'audio/webm' });
-                state.recordedAudioURL = URL.createObjectURL(audioBlob);
-
-                // Show playback button
-                if (els.playbackBtn) {
-                    els.playbackBtn.style.display = "inline-flex";
-                }
-
-                // Stop audio stream tracks
-                if (state.audioStream) {
-                    state.audioStream.getTracks().forEach(track => track.stop());
-                }
-            };
-
-            state.mediaRecorder.start();
-
-        } catch (error) {
-            console.error("Error accessing microphone:", error);
-            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
-            return;
-        }
-
-        state.isRecording = true;
-        state.speechSynthesis.cancel();
-        state.isPlaying = false;
-
-        els.verseCard.classList.add("listening");
-        els.recordingIndicator.classList.add("active");
-        disableControls(true);
-
-        setGuideMessage("I'm listening! Sing the verse now!");
-
-        // Reset words for tracking
-        resetKaraokeWords();
-
-        state._recognizedText = "";
-        state._recognitionTimeout = null;
-
-        // Also start speech recognition for transcription (if available)
-        if (state.recognition) {
-            try {
-                state.recognition.start();
-            } catch (e) {
-                // Already started
-                console.warn("Recognition already running:", e);
+        // Listen for agent status changes on the document
+        document.addEventListener("elevenlabs-convai:status", (event) => {
+            const detail = event.detail;
+            if (detail && detail.status === "connected") {
+                els.agentStatus.textContent = "Math Buddy is ready! Start talking!";
+                els.avatarCircle.classList.add("speaking");
+            } else if (detail && detail.status === "disconnected") {
+                els.agentStatus.textContent = "Disconnected. Tap mic to reconnect.";
+                els.avatarCircle.classList.remove("speaking");
+                els.avatarPulse.classList.remove("active");
             }
-        }
+        });
 
-        // Auto-stop after 15 seconds if child doesn't press done
-        state._autoStopTimer = setTimeout(() => {
-            if (state.isRecording) {
-                stopRecording();
-            }
-        }, 15000);
-    }
-
-    function stopRecording() {
-        if (!state.isRecording) return;
-
-        state.isRecording = false;
-        els.verseCard.classList.remove("listening");
-        els.recordingIndicator.classList.remove("active");
-        disableControls(false);
-
-        clearTimeout(state._autoStopTimer);
-
-        // Stop MediaRecorder
-        if (state.mediaRecorder && state.mediaRecorder.state !== "inactive") {
-            state.mediaRecorder.stop();
-        }
-
-        // Stop speech recognition
-        if (state.recognition) {
-            try {
-                state.recognition.stop();
-            } catch (e) {
-                // Already stopped
-            }
-        }
-
-        // Evaluate what was heard
-        evaluateAttempt(state._recognizedText || "");
-    }
-
-    function handleRecognitionResult(event) {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-        }
-        state._recognizedText = transcript;
-
-        // Show partial recognition by highlighting words
-        highlightRecognizedWords(transcript);
-    }
-
-    function handleRecognitionError(event) {
-        console.warn("Recognition error:", event.error);
-
-        if (event.error === "not-allowed") {
-            setGuideMessage("Oops! Please allow microphone access so I can hear you sing!");
-        }
-
-        if (state.isRecording) {
-            // If error during recording, be forgiving for kids
-            setTimeout(() => {
-                if (state.isRecording) {
-                    stopRecording();
-                }
-            }, 1000);
-        }
-    }
-
-    function handleRecognitionEnd() {
-        if (state.isRecording) {
-            // Restart if still supposed to be recording
-            try {
-                state.recognition.start();
-            } catch (e) {
-                stopRecording();
-            }
-        }
-    }
-
-    function highlightRecognizedWords(transcript) {
-        const wordSpans = els.verseTranslit.querySelectorAll(".word-span");
-        const spoken = transcript.toLowerCase().replace(/[,.\/#!$%\^&\*;:{}=\-_`~()]/g, "");
-        const spokenWords = spoken.split(/\s+/).filter(w => w.length > 0);
-
-        // Simple matching: highlight words that sound similar
-        const verse = HANUMAN_CHALISA[state.currentVerse];
-        const verseWords = verse.speakText.toLowerCase().split(/\s+/);
-
-        let matchCount = 0;
-        verseWords.forEach((vw, i) => {
-            if (i < wordSpans.length) {
-                const matched = spokenWords.some(sw => fuzzyMatch(sw, vw));
-                if (matched) {
-                    wordSpans[i].classList.add("done");
-                    matchCount++;
-                }
+        // Listen for transcription messages
+        document.addEventListener("elevenlabs-convai:message", (event) => {
+            const detail = event.detail;
+            if (detail) {
+                addTranscriptBubble(detail.source || "agent", detail.message || "");
             }
         });
     }
 
-    // ===== PLAYBACK RECORDING =====
-    function playbackRecording() {
-        if (!state.recordedAudioURL) {
-            setGuideMessage("No recording to play back yet! Try recording first!");
-            return;
+    function stopElevenLabsConversation() {
+        if (state.widgetElement) {
+            state.widgetElement.remove();
+            state.widgetElement = null;
         }
-
-        // Create and play audio element
-        const audio = new Audio(state.recordedAudioURL);
-
-        setGuideMessage("Playing back your recording!");
-        els.playbackBtn.disabled = true;
-        disableControls(true);
-
-        audio.onended = () => {
-            setGuideMessage("That was you singing! Great job!");
-            els.playbackBtn.disabled = false;
-            disableControls(false);
-        };
-
-        audio.onerror = () => {
-            setGuideMessage("Oops! Couldn't play the recording.");
-            els.playbackBtn.disabled = false;
-            disableControls(false);
-        };
-
-        audio.play();
     }
 
-    // ===== EVALUATION =====
-    function evaluateAttempt(transcript) {
-        state.attemptCount++;
-        const verse = HANUMAN_CHALISA[state.currentVerse];
-        const verseWords = verse.speakText.toLowerCase().split(/\s+/);
-        const spokenWords = transcript.toLowerCase()
-            .replace(/[,.\/#!$%\^&\*;:{}=\-_`~()]/g, "")
-            .split(/\s+/)
-            .filter(w => w.length > 0);
+    function toggleMic() {
+        // The mic button provides visual feedback
+        // The actual mic control is handled by the ElevenLabs widget
+        els.btnMic.classList.toggle("active");
 
-        // Calculate match score
-        let matches = 0;
-        verseWords.forEach(vw => {
-            if (spokenWords.some(sw => fuzzyMatch(sw, vw))) {
-                matches++;
-            }
-        });
-
-        const score = verseWords.length > 0 ? matches / verseWords.length : 0;
-
-        // Be generous with scoring for 5-year-olds!
-        // Also consider: if child spoke any words at all, that's effort
-        const hasEffort = spokenWords.length > 0 || transcript.length > 0;
-
-        if (score >= 0.3 || (hasEffort && state.attemptCount >= 2)) {
-            // Great job! (Be encouraging for kids)
-            showFeedback("great", randomFrom(ENCOURAGE_MESSAGES.great));
-            awardStar();
-            markVerseCompleted();
-            els.verseCard.classList.add("success");
-            createFloatingStar();
-        } else if (hasEffort || state.attemptCount >= 1) {
-            // Good try
-            showFeedback("good", randomFrom(ENCOURAGE_MESSAGES.good));
-            // After 2 attempts, give star anyway (kids should feel accomplished)
-            if (state.attemptCount >= 2) {
-                awardStar();
-                markVerseCompleted();
-                els.verseCard.classList.add("success");
-                createFloatingStar();
-            }
+        if (els.btnMic.classList.contains("active")) {
+            els.agentStatus.textContent = "Listening...";
+            els.avatarPulse.classList.add("active");
         } else {
-            // Encourage to try again
-            showFeedback("try-again", randomFrom(ENCOURAGE_MESSAGES.tryAgain));
+            els.agentStatus.textContent = "Tap mic to talk";
+            els.avatarPulse.classList.remove("active");
         }
     }
 
-    function fuzzyMatch(spoken, expected) {
-        // Simple fuzzy matching for speech recognition inaccuracies
-        if (!spoken || !expected) return false;
-        spoken = spoken.toLowerCase().trim();
-        expected = expected.toLowerCase().trim();
+    function addTranscriptBubble(role, text) {
+        if (!text.trim()) return;
 
-        // Exact match
-        if (spoken === expected) return true;
+        const bubble = document.createElement("div");
+        bubble.className = "transcript-bubble " + (role === "user" ? "user" : "agent");
+        bubble.textContent = text;
+        els.agentTranscript.appendChild(bubble);
 
-        // One contains the other
-        if (spoken.includes(expected) || expected.includes(spoken)) return true;
+        // Auto-scroll to bottom
+        els.agentTranscript.scrollTop = els.agentTranscript.scrollHeight;
 
-        // Remove common suffixes/prefixes
-        if (spoken.length >= 3 && expected.length >= 3) {
-            // Check if first 3 chars match (good enough for kids)
-            if (spoken.substring(0, 3) === expected.substring(0, 3)) return true;
-
-            // Levenshtein-like: allow 2 char difference for words > 4 chars
-            if (expected.length > 4 && levenshteinDistance(spoken, expected) <= 2) return true;
-            if (expected.length <= 4 && levenshteinDistance(spoken, expected) <= 1) return true;
-        }
-
-        return false;
-    }
-
-    function levenshteinDistance(a, b) {
-        const matrix = [];
-        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b[i - 1] === a[j - 1]) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1,
-                        matrix[i][j - 1] + 1,
-                        matrix[i - 1][j] + 1
-                    );
-                }
-            }
-        }
-        return matrix[b.length][a.length];
-    }
-
-    // ===== FEEDBACK =====
-    function showFeedback(type, message) {
-        els.feedbackArea.className = "feedback-area visible " + type;
-        els.feedbackContent.textContent = message;
-        setGuideMessage(message);
-    }
-
-    function hideFeedback() {
-        els.feedbackArea.className = "feedback-area";
-    }
-
-    // ===== STARS & REWARDS =====
-    function awardStar() {
-        state.stars++;
-        updateStarDisplay();
-    }
-
-    function updateStarDisplay() {
-        els.starCount.textContent = state.stars;
-        // Bounce animation
-        els.starsEarned.style.animation = "none";
-        els.starsEarned.offsetHeight;
-        els.starsEarned.style.animation = "bounce 0.5s ease";
-    }
-
-    function createFloatingStar() {
-        const star = document.createElement("div");
-        star.className = "floating-star";
-        star.textContent = "*";
-        star.style.left = Math.random() * 80 + 10 + "%";
-        star.style.top = "60%";
-        document.body.appendChild(star);
-        setTimeout(() => star.remove(), 1500);
-    }
-
-    function markVerseCompleted() {
-        state.versesCompleted.add(state.currentVerse);
-    }
-
-    // ===== NAVIGATION =====
-    function goToNextVerse() {
-        // Award a star if user listened to this verse and it wasn't already completed
-        if (state.hasListened && !state.versesCompleted.has(state.currentVerse)) {
-            awardStar();
-            markVerseCompleted();
-        }
-
-        if (state.currentVerse < HANUMAN_CHALISA.length - 1) {
-            state.speechSynthesis.cancel();
-            loadVerse(state.currentVerse + 1);
-        } else {
-            showCelebration();
+        // Limit transcript history (keep last 20 messages)
+        while (els.agentTranscript.children.length > 20) {
+            els.agentTranscript.removeChild(els.agentTranscript.firstChild);
         }
     }
 
-    function goToPrevVerse() {
-        if (state.currentVerse > 0) {
-            state.speechSynthesis.cancel();
-            loadVerse(state.currentVerse - 1);
+    // ===== PAYWALL =====
+    function showPaywall() {
+        if (state.user) {
+            els.paywallChildMsg.textContent =
+                state.user.childName + " used all the free minutes.";
+        }
+        showScreen("paywall");
+    }
+
+    function showTimesUpModal() {
+        els.modalTimesUp.style.display = "flex";
+        if (state.user) {
+            els.modalTimesUpMsg.textContent =
+                state.user.childName + "'s session time is up.";
         }
     }
 
-    function skipToNext() {
-        goToNextVerse();
+    function handleSubscribe() {
+        // In production, this would trigger StoreKit / Apple IAP via Capacitor plugin.
+        // For now, simulate a successful subscription.
+        state.isSubscribed = true;
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7); // 1 week from now
+        state.subscriptionExpiry = expiry;
+
+        // Reset usage for the new subscription period
+        state.usageSeconds = 0;
+
+        saveSubscriptionData();
+        saveUsageData();
+
+        showScreen("dashboard");
+        updateDashboard();
     }
 
-    function updateProgress() {
-        const progress = ((state.currentVerse + 1) / HANUMAN_CHALISA.length) * 100;
-        els.progressBar.style.width = progress + "%";
-        els.progressText.textContent = `Verse ${state.currentVerse + 1} of ${HANUMAN_CHALISA.length}`;
+    // ===== SETTINGS =====
+    function updateSettings() {
+        if (!state.user) return;
+
+        els.settingsName.textContent = state.user.name;
+        els.settingsEmail.textContent = state.user.email;
+        els.settingsPhone.textContent = state.user.phone;
+        els.settingsChild.textContent = state.user.childName;
+
+        els.settingsPlan.textContent = state.isSubscribed ? "Weekly ($9.99/wk)" : "Free Trial";
+
+        const totalUsed = state.usageSeconds;
+        els.settingsTimeUsed.textContent = formatTime(totalUsed);
+
+        const maxSec = getTotalAllowedSeconds();
+        const remaining = Math.max(0, maxSec - totalUsed);
+        els.settingsTimeRemaining.textContent = formatTime(remaining);
+
+        // Show/hide upgrade button based on subscription status
+        els.btnUpgrade.style.display = state.isSubscribed ? "none" : "block";
     }
 
-    function updateNavButtons() {
-        els.prevBtn.disabled = state.currentVerse === 0;
-        els.nextBtn.textContent = state.currentVerse === HANUMAN_CHALISA.length - 1
-            ? "Finish!"
-            : "Next";
-    }
+    function handleLogout() {
+        if (!confirm("Sign out? Your usage data will be cleared.")) return;
 
-    // ===== FAL.AI IMAGE GENERATION =====
-    async function generateHanumanImage(prompt) {
-        if (imageCache.has(prompt)) {
-            return imageCache.get(prompt);
+        // End any active session
+        if (state.sessionActive) {
+            endSession();
         }
 
-        const response = await fetch(FAL_ENDPOINT, {
-            method: "POST",
-            headers: {
-                "Authorization": `Key ${FAL_API_KEY}`,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                prompt: prompt,
-                image_size: "square_hd",
-                num_images: 1,
-                safety_tolerance: "6",
-            }),
-        });
+        // Clear all data
+        localStorage.removeItem(CONFIG.STORAGE_KEY_USER);
+        localStorage.removeItem(CONFIG.STORAGE_KEY_USAGE);
+        localStorage.removeItem(CONFIG.STORAGE_KEY_SUBSCRIPTION);
 
-        if (!response.ok) {
-            throw new Error(`fal.ai API error: ${response.status}`);
-        }
+        state.user = null;
+        state.usageSeconds = 0;
+        state.isSubscribed = false;
+        state.subscriptionExpiry = null;
 
-        let data = await response.json();
-        console.log("fal.ai raw response:", JSON.stringify(data));
+        // Reset form
+        els.registerForm.reset();
 
-        // Handle async queue responses
-        if (data.status === "IN_QUEUE" || data.status === "IN_PROGRESS" || data.request_id) {
-            const statusUrl = data.response_url || `https://queue.fal.run/fal-ai/flux-pro/requests/${data.request_id}`;
-            for (let i = 0; i < 30; i++) {
-                await new Promise(r => setTimeout(r, 2000));
-                const poll = await fetch(statusUrl, {
-                    headers: { "Authorization": `Key ${FAL_API_KEY}` }
-                });
-                data = await poll.json();
-                console.log("fal.ai poll response:", JSON.stringify(data));
-                if (data.status === "COMPLETED" || data.images) break;
-            }
-        }
-
-        if (!data.images || !data.images[0]) {
-            throw new Error("No image in response: " + JSON.stringify(data));
-        }
-
-        const imageUrl = data.images[0].url;
-        imageCache.set(prompt, imageUrl);
-        return imageUrl;
-    }
-
-    function applyImageToElement(imgEl, loadingEl, url) {
-        imgEl.onload = () => {
-            if (loadingEl) loadingEl.classList.add("hidden");
-            imgEl.classList.add("loaded");
-        };
-        imgEl.onerror = () => {
-            if (loadingEl) loadingEl.classList.add("hidden");
-        };
-        imgEl.src = url;
-    }
-
-    // Pre-generate celebration image starting at verse 25 so it's ready by the end
-    const CELEBRATION_PROMPT = "Lord Hanuman joyfully celebrating victory, arms raised in triumph, divine golden light, colorful flowers raining down, sacred saffron colors, warm jubilant energy, children friendly spiritual illustration, vibrant festive art";
-    let celebrationImagePromise = null;
-
-    function preGenerateCelebrationImage() {
-        if (!celebrationImagePromise) {
-            celebrationImagePromise = generateHanumanImage(CELEBRATION_PROMPT);
-            celebrationImagePromise.catch(err => {
-                console.error("Pre-generation error:", err);
-                celebrationImagePromise = null; // allow retry on celebration screen
-            });
-        }
-    }
-
-    // ===== CELEBRATION =====
-    function showCelebration() {
-        showScreen("celebration");
-        els.finalStars.textContent = state.stars;
-        createConfetti();
-
-        // Personalize celebration with name
-        const name = state.playerName;
-        if (name) {
-            els.celebrationTitle.textContent = `Amazing Job, ${name}!`;
-            els.celebrationText.textContent = `${name}, you sang the Hanuman Chalisa!`;
-        } else {
-            els.celebrationTitle.textContent = "Amazing Job!";
-            els.celebrationText.textContent = "You sang the Hanuman Chalisa!";
-        }
-
-        // Reset celebration image
-        const loadingEl = document.getElementById("celebration-image-loading");
-        if (loadingEl) loadingEl.classList.remove("hidden");
-        if (els.celebrationHanumanImage) {
-            els.celebrationHanumanImage.classList.remove("loaded");
-            els.celebrationHanumanImage.src = "";
-        }
-
-        // Speak congratulation (personalized)
-        const congratsText = name
-            ? `Wow! ${name}, you completed the Hanuman Chalisa! Jai Hanuman! ${name}, you are amazing!`
-            : "Wow! You completed the Hanuman Chalisa! Jai Hanuman! You are amazing!";
-        const congrats = new SpeechSynthesisUtterance(congratsText);
-        congrats.rate = 0.9;
-        congrats.pitch = 1.2;
-        if (state.englishVoice) congrats.voice = state.englishVoice;
-        state.speechSynthesis.speak(congrats);
-
-        // Use pre-generated image if available, otherwise generate now
-        const imgPromise = celebrationImagePromise || generateHanumanImage(CELEBRATION_PROMPT);
-        imgPromise.then(url => {
-            applyImageToElement(els.celebrationHanumanImage, loadingEl, url);
-        }).catch(err => {
-            console.error("Celebration image error:", err);
-            if (loadingEl) loadingEl.classList.add("hidden");
-        });
-    }
-
-    function createConfetti() {
-        const colors = ["#FF6B35", "#FF9933", "#FFD166", "#06D6A0", "#118AB2", "#7B2D8E", "#FF69B4", "#E63946"];
-        els.confettiContainer.innerHTML = "";
-
-        for (let i = 0; i < 50; i++) {
-            const piece = document.createElement("div");
-            piece.className = "confetti-piece";
-            piece.style.left = Math.random() * 100 + "%";
-            piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-            piece.style.animationDelay = Math.random() * 3 + "s";
-            piece.style.animationDuration = (Math.random() * 2 + 2) + "s";
-            const size = Math.random() * 8 + 6;
-            piece.style.width = size + "px";
-            piece.style.height = size + "px";
-            if (Math.random() > 0.5) piece.style.borderRadius = "50%";
-            els.confettiContainer.appendChild(piece);
-        }
-    }
-
-    // ===== RESTART =====
-    function restartApp() {
-        state.speechSynthesis.cancel();
-        celebrationImagePromise = null;
-        showScreen("start");
-        // Keep name filled in so they don't have to re-type
-        if (state.playerName && els.playerNameInput) {
-            els.playerNameInput.value = state.playerName;
-        }
+        showScreen("register");
     }
 
     // ===== HELPERS =====
-    function setGuideMessage(text) {
-        els.guideMessage.textContent = text;
-        // Animate bubble
-        els.speechBubble.style.animation = "none";
-        els.speechBubble.offsetHeight;
-        els.speechBubble.style.animation = "slide-up 0.3s ease";
+    function formatTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
     }
-
-    function disableControls(disabled) {
-        els.listenBtn.disabled = disabled;
-        els.listenSlowBtn.disabled = disabled;
-        if (!state.hasListened && disabled === false) {
-            els.myTurnBtn.disabled = true;
-        } else {
-            els.myTurnBtn.disabled = disabled;
-        }
-        els.skipBtn.disabled = disabled;
-    }
-
-    function randomFrom(arr) {
-        return arr[Math.floor(Math.random() * arr.length)];
-    }
-
-    // ===== KEYBOARD SHORTCUTS (for parents/testing) =====
-    document.addEventListener("keydown", (e) => {
-        if (screens.learn.classList.contains("active")) {
-            switch (e.key) {
-                case " ":
-                    e.preventDefault();
-                    if (!state.isRecording && !state.isPlaying) speakVerse(1.0);
-                    break;
-                case "ArrowRight":
-                    goToNextVerse();
-                    break;
-                case "ArrowLeft":
-                    goToPrevVerse();
-                    break;
-                case "m":
-                    if (!state.isRecording) startRecording();
-                    else stopRecording();
-                    break;
-            }
-        }
-    });
 
     // ===== START =====
     init();

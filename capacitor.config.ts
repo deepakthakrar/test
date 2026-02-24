@@ -1,22 +1,22 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.hanumanchalisa.kids',
-  appName: 'Hanuman Chalisa Kids',
+  appId: 'com.mathbuddy.tutor',
+  appName: 'Math Buddy',
   webDir: 'www',
   server: {
     androidScheme: 'https'
   },
   ios: {
     contentInset: 'always',
-    backgroundColor: '#FFF3E0',
+    backgroundColor: '#F0F7FF',
     preferredContentMode: 'mobile',
   },
   plugins: {
     SplashScreen: {
       launchAutoHide: true,
       launchShowDuration: 2000,
-      backgroundColor: '#FFF3E0',
+      backgroundColor: '#F0F7FF',
       showSpinner: false,
     },
   },

@@ -1,10 +1,9 @@
-const CACHE_NAME = 'hanuman-chalisa-v1';
+const CACHE_NAME = 'math-buddy-v1';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
-  '/verses.js',
   '/manifest.json',
 ];
 
@@ -26,8 +25,16 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: serve from cache first, fallback to network
+// Fetch: network first for API calls, cache first for assets
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Don't cache ElevenLabs or external API calls
+  if (url.hostname !== location.hostname) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request))
   );

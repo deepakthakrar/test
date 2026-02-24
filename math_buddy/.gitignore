@@ -1,0 +1,31 @@
+# Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+*.iml
+.idea/
+.vscode/
+*.lock
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Runner.xcworkspace/xcshareddata/
+ios/Flutter/App.framework
+ios/Flutter/engine/
+ios/Flutter/Generated.xcconfig
+
+# Android
+android/.gradle/
+android/local.properties
+android/app/debug/
+android/app/release/
+android/app/profile/
+
+# Misc
+.DS_Store
+*.swp
+*.swo
