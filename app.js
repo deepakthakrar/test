@@ -7,7 +7,7 @@
     // ===== CONFIGURATION =====
     const CONFIG = {
         // >>> REPLACE WITH YOUR ELEVENLABS AGENT ID <<<
-        ELEVENLABS_AGENT_ID: "YOUR_AGENT_ID_HERE",
+        ELEVENLABS_AGENT_ID: "agent_9401kj56313ve9htt2wyn9revqkv",
 
         // Free tier: 7 minutes (420 seconds)
         FREE_TIER_SECONDS: 7 * 60,
